@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.2.0] - 2026-07-12
+
+### Added
+- Frecuencia bimensual para transacciones recurrentes
+- Checkbox "Indeterminado" para fecha fin de transacciones recurrentes
+- Dos datepickers funcionales para fecha inicio y fin en el formulario recurrente
+
+### Changed
+- Símbolo de moneda cambiado de "Eur" a "€" en todo el frontend
+- Números de stat cards más compactos para evitar desbordamiento
+- Botón ojo ahora oculta/muestra tanto Ingresos como Ahorro
+
+### Fixed
+- Fecha fin de transacciones recurrentes no era clickeable (input nunca se agregaba al DOM)
+- Estadísticas numéricas se desbordaban del contenedor en pantallas pequeñas
+
 ## [1.1.0] - 2026-07-12
 
 ### Added

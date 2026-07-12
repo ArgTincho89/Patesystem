@@ -48,12 +48,14 @@ const HomePage = {
     statsRow.appendChild(this.createStat('Gastos', formatearEuro(summary.gastosNetos), 'var(--expense-color)'));
 
     const incomeCard = this.createStat('Ingresos', formatearEuro(summary.ingresos), 'var(--income-color)');
+    const savingsCard = this.createStat('Ahorro', `${savingsSign}${formatearEuro(summary.ahorro)}`, savingsColor);
     if (incomeHidden) {
       incomeCard.querySelector('.stat-value').classList.add('income-blurred');
+      savingsCard.querySelector('.stat-value').classList.add('income-blurred');
     }
     statsRow.appendChild(incomeCard);
 
-    statsRow.appendChild(this.createStat('Ahorro', `${savingsSign}${formatearEuro(summary.ahorro)}`, savingsColor));
+    statsRow.appendChild(savingsCard);
 
     header.appendChild(statsRow);
 

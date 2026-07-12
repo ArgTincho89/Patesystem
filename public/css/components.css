@@ -134,10 +134,11 @@ select.form-control {
 }
 
 .stat-value {
-  font-size: clamp(1rem, 4vw, var(--font-2xl));
+  font-size: clamp(0.9rem, 3.5vw, var(--font-lg));
   font-weight: 700;
   margin-top: var(--space-xs);
   word-break: break-word;
+  white-space: nowrap;
 }
 
 .stat-label {

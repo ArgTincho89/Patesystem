@@ -100,25 +100,32 @@ const TransactionForm = {
     freqSelectGroup.appendChild(create('label', { textContent: 'Frecuencia' }));
     const freqSelect = create('select', { className: 'form-control' });
     freqSelect.appendChild(create('option', { value: 'monthly', textContent: 'Mensual' }));
+    freqSelect.appendChild(create('option', { value: 'bimonthly', textContent: 'Bimensual' }));
     freqSelect.appendChild(create('option', { value: 'semiannual', textContent: 'Semestral' }));
     freqSelect.appendChild(create('option', { value: 'annual', textContent: 'Anual' }));
     freqSelectGroup.appendChild(freqSelect);
     freqGroup.appendChild(freqSelectGroup);
 
     const endDateGroup = create('div', { className: 'form-group' });
-    endDateGroup.appendChild(create('label', { textContent: 'Fecha fin (opcional)' }));
+    endDateGroup.appendChild(create('label', { textContent: 'Fecha fin' }));
     const endDateInput = create('input', {
       className: 'form-control',
-      type: 'date',
-      placeholder: 'Indeterminado'
+      type: 'date'
     });
-    endDateGroup.appendChild(create('input', {
-      type: 'text',
-      className: 'form-control',
-      value: 'Indeterminado',
-      disabled: true,
-      style: { opacity: '0.5' }
-    }));
+    endDateGroup.appendChild(endDateInput);
+
+    const indeterminadoLabel = create('label', { className: 'checkbox-label', style: { marginTop: '8px' } });
+    const indeterminadoCheckbox = create('input', { type: 'checkbox', className: 'form-checkbox' });
+    indeterminadoLabel.appendChild(indeterminadoCheckbox);
+    indeterminadoLabel.appendChild(document.createTextNode(' Indeterminado'));
+    endDateGroup.appendChild(indeterminadoLabel);
+
+    on(indeterminadoCheckbox, 'change', () => {
+      endDateInput.disabled = indeterminadoCheckbox.checked;
+      endDateInput.value = '';
+      endDateInput.style.opacity = indeterminadoCheckbox.checked ? '0.4' : '1';
+    });
+
     freqGroup.appendChild(endDateGroup);
 
     recurringGroup.appendChild(freqGroup);
@@ -160,7 +167,7 @@ const TransactionForm = {
       if (recurringEnabled) {
         data.recurrente = true;
         data.frecuencia = freqSelect.value;
-        if (endDateInput.value) {
+        if (!indeterminadoCheckbox.checked && endDateInput.value) {
           data.fechaFin = endDateInput.value;
         }
       }

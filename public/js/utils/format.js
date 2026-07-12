@@ -1,9 +1,9 @@
 function formatearEuro(cantidad) {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 2
-  }).format(cantidad);
+  const formatted = new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  }).format(Math.abs(cantidad));
+  return `${cantidad < 0 ? '-' : ''}${formatted}€`;
 }
 
 function parseFecha(fechaStr) {
