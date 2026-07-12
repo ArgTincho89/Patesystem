@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0] - 2026-07-12
+
+### Added
+- Botón "Filtrar" en la pantalla Inicio, al lado derecho del título "Transacciones"
+- Modal de filtros con: Tipo, Categoría, Clasificación, Texto libre, Monto mínimo/máximo, Fecha desde/hasta
+- Botón "Limpiar" para resetear todos los filtros
+- Badge "Filtrando" cuando hay filtros activos
+
+### Changed
+- Título de transacción ahora es opcional — si se deja vacío, se usa el nombre de la categoría o subcategoría seleccionada
+- Backend valida menos campos obligatorios al crear transacción
+
 ## [1.4.0] - 2026-07-12
 
 ### Added

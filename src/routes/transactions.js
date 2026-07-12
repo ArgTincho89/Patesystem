@@ -75,10 +75,6 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'El monto debe ser un número positivo' });
   }
 
-  if (!titulo || !titulo.trim()) {
-    return res.status(400).json({ error: 'El título es obligatorio' });
-  }
-
   if ((tipo === 'expense' || tipo === 'refund') && !categoryId) {
     return res.status(400).json({ error: 'Los gastos y reembolsos requieren una categoría' });
   }
@@ -94,18 +90,22 @@ router.post('/', (req, res) => {
   const db = req.app.locals.db;
   const userId = req.session.userId;
 
+  let categoryName = null;
   if (categoryId) {
     const category = db.findById('categories', categoryId, userId);
     if (!category) {
       return res.status(400).json({ error: 'Categoría no encontrada' });
     }
+    categoryName = category.nombre;
   }
+
+  const finalTitulo = (titulo && titulo.trim()) || categoryName || 'Sin título';
 
   const transaction = db.create('transactions', {
     userId,
     tipo,
     monto: Math.round(monto * 100) / 100,
-    titulo: titulo.trim(),
+    titulo: finalTitulo,
     categoryId: categoryId || null,
     fecha: fecha || new Date().toISOString().split('T')[0],
     recurrente: recurrente || false,

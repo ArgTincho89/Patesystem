@@ -102,18 +102,20 @@ describe('Transactions Routes', () => {
       expect(res.status).toBe(400);
     });
 
-    it('should reject missing title', async () => {
+    it('should default title to category name when missing', async () => {
       const res = await agent.post('/api/transactions').send({
         tipo: 'expense', monto: 10, categoryId
       });
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(201);
+      expect(res.body.titulo).toBe('Food');
     });
 
-    it('should reject empty title', async () => {
+    it('should default title to category name when empty', async () => {
       const res = await agent.post('/api/transactions').send({
         tipo: 'expense', monto: 10, titulo: '  ', categoryId
       });
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(201);
+      expect(res.body.titulo).toBe('Food');
     });
 
     it('should reject non-existent category', async () => {

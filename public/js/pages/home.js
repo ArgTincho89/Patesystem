@@ -138,55 +138,75 @@ const HomePage = {
       content.appendChild(catSection);
     }
 
-    if (transactions.length > 0) {
+    if (transactions.length > 0 || this.hasActiveFilters()) {
       const txSection = create('div');
-      txSection.appendChild(create('h3', {
+
+      const txHeader = create('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' } });
+      txHeader.appendChild(create('h3', {
         textContent: 'Transacciones',
-        style: { marginBottom: '12px', fontSize: 'var(--font-md)' }
+        style: { fontSize: 'var(--font-md)', margin: 0 }
       }));
-
-      const grouped = groupTransactionsByDate(transactions);
-      grouped.forEach(group => {
-        const dayHeader = create('div', { className: 'day-header', textContent: formatFechaLarga(group.fecha) });
-        txSection.appendChild(dayHeader);
-
-        group.items.forEach(tx => {
-          const cat = catMap[tx.categoryId];
-          const item = create('div', { className: 'transaction-item' });
-
-          const colors = { expense: 'var(--expense-color)', income: 'var(--income-color)', refund: 'var(--refund-color)' };
-          const icons = { expense: '💸', income: '💰', refund: '↩️' };
-
-          const iconBg = colors[tx.tipo] || 'var(--text-muted)';
-          const icon = create('div', {
-            className: 'transaction-icon',
-            style: { background: `${iconBg}22`, color: iconBg },
-            textContent: icons[tx.tipo]
-          });
-
-          const info = create('div', { className: 'transaction-info' });
-          info.appendChild(create('div', { className: 'transaction-title', textContent: tx.titulo }));
-
-          const catName = tx.tipo === 'income' ? 'Ingreso' : (tx.tipo === 'refund' ? 'Reembolso' : (cat ? cat.nombre : 'Sin categoría'));
-          info.appendChild(create('div', { className: 'transaction-category', textContent: catName }));
-
-          const sign = tx.tipo === 'expense' ? '-' : '+';
-          const amountClass = tx.tipo;
-          const amount = create('div', {
-            className: `transaction-amount ${amountClass}`,
-            textContent: `${sign}${formatearEuro(tx.monto)}`
-          });
-
-          item.appendChild(icon);
-          item.appendChild(info);
-          item.appendChild(amount);
-
-          item.style.cursor = 'pointer';
-          on(item, 'click', () => this.showTransactionOptions(tx, catMap));
-
-          txSection.appendChild(item);
-        });
+      const filterBtn = create('button', {
+        className: 'btn btn-sm btn-ghost',
+        textContent: this.hasActiveFilters() ? 'Filtrando' : 'Filtrar'
       });
+      if (this.hasActiveFilters()) filterBtn.style.color = 'var(--accent)';
+      on(filterBtn, 'click', () => this.showFilterModal(categories, transactions));
+      txHeader.appendChild(filterBtn);
+      txSection.appendChild(txHeader);
+
+      const filtered = this.applyFilters(transactions);
+
+      if (filtered.length === 0) {
+        txSection.appendChild(create('div', {
+          className: 'empty-state',
+          innerHTML: '<p class="empty-state-text">No hay transacciones con estos filtros</p>'
+        }));
+      } else {
+        const grouped = groupTransactionsByDate(filtered);
+        grouped.forEach(group => {
+          const dayHeader = create('div', { className: 'day-header', textContent: formatFechaLarga(group.fecha) });
+          txSection.appendChild(dayHeader);
+
+          group.items.forEach(tx => {
+            const cat = catMap[tx.categoryId];
+            const item = create('div', { className: 'transaction-item' });
+
+            const colors = { expense: 'var(--expense-color)', income: 'var(--income-color)', refund: 'var(--refund-color)' };
+            const icons = { expense: '💸', income: '💰', refund: '↩️' };
+
+            const iconBg = colors[tx.tipo] || 'var(--text-muted)';
+            const icon = create('div', {
+              className: 'transaction-icon',
+              style: { background: `${iconBg}22`, color: iconBg },
+              textContent: icons[tx.tipo]
+            });
+
+            const info = create('div', { className: 'transaction-info' });
+            info.appendChild(create('div', { className: 'transaction-title', textContent: tx.titulo }));
+
+            const catName = tx.tipo === 'income' ? 'Ingreso' : (tx.tipo === 'refund' ? 'Reembolso' : (cat ? cat.nombre : 'Sin categoría'));
+            info.appendChild(create('div', { className: 'transaction-category', textContent: catName }));
+
+            const sign = tx.tipo === 'expense' ? '-' : '+';
+            const amountClass = tx.tipo;
+            const amount = create('div', {
+              className: `transaction-amount ${amountClass}`,
+              textContent: `${sign}${formatearEuro(tx.monto)}`
+            });
+
+            item.appendChild(icon);
+            item.appendChild(info);
+            item.appendChild(amount);
+
+            item.style.cursor = 'pointer';
+            on(item, 'click', () => this.showTransactionOptions(tx, catMap));
+
+            txSection.appendChild(item);
+          });
+        });
+      }
+
       content.appendChild(txSection);
     } else {
       content.appendChild(create('div', {
@@ -254,5 +274,172 @@ const HomePage = {
         ${tx.tipo === 'expense' ? '-' : '+'}${formatearEuro(tx.monto)}
       </p>
     `, { footer });
+  },
+
+  filters: {
+    tipo: '',
+    categoryId: '',
+    clasificacion: '',
+    texto: '',
+    montoMin: '',
+    montoMax: '',
+    fechaDesde: '',
+    fechaHasta: ''
+  },
+
+  hasActiveFilters() {
+    return Object.values(this.filters).some(v => v !== '');
+  },
+
+  applyFilters(transactions) {
+    return transactions.filter(tx => {
+      if (this.filters.tipo && tx.tipo !== this.filters.tipo) return false;
+      if (this.filters.categoryId && tx.categoryId !== this.filters.categoryId) return false;
+      if (this.filters.clasificacion && tx.clasificacion !== this.filters.clasificacion) return false;
+      if (this.filters.texto) {
+        const q = this.filters.texto.toLowerCase();
+        if (!tx.titulo.toLowerCase().includes(q)) return false;
+      }
+      if (this.filters.montoMin && tx.monto < parseFloat(this.filters.montoMin)) return false;
+      if (this.filters.montoMax && tx.monto > parseFloat(this.filters.montoMax)) return false;
+      if (this.filters.fechaDesde && tx.fecha < this.filters.fechaDesde) return false;
+      if (this.filters.fechaHasta && tx.fecha > this.filters.fechaHasta) return false;
+      return true;
+    });
+  },
+
+  showFilterModal(categories, transactions) {
+    const form = create('div');
+
+    const tipoGroup = create('div', { className: 'form-group' });
+    tipoGroup.appendChild(create('label', { textContent: 'Tipo' }));
+    const tipoSelect = create('select', { className: 'form-control' });
+    tipoSelect.appendChild(create('option', { value: '', textContent: 'Todos' }));
+    tipoSelect.appendChild(create('option', { value: 'expense', textContent: 'Gasto' }));
+    tipoSelect.appendChild(create('option', { value: 'income', textContent: 'Ingreso' }));
+    tipoSelect.appendChild(create('option', { value: 'refund', textContent: 'Reembolso' }));
+    tipoSelect.value = this.filters.tipo;
+    tipoGroup.appendChild(tipoSelect);
+    form.appendChild(tipoGroup);
+
+    const catGroup = create('div', { className: 'form-group' });
+    catGroup.appendChild(create('label', { textContent: 'Categoría' }));
+    const catSelect = create('select', { className: 'form-control' });
+    catSelect.appendChild(create('option', { value: '', textContent: 'Todas' }));
+    const parents = categories.filter(c => !c.parentId);
+    const childrenMap = {};
+    categories.forEach(c => {
+      if (c.parentId) {
+        if (!childrenMap[c.parentId]) childrenMap[c.parentId] = [];
+        childrenMap[c.parentId].push(c);
+      }
+    });
+    parents.forEach(cat => {
+      catSelect.appendChild(create('option', { value: cat.id, textContent: cat.nombre }));
+      (childrenMap[cat.id] || []).forEach(child => {
+        catSelect.appendChild(create('option', { value: child.id, textContent: `  └ ${child.nombre}` }));
+      });
+    });
+    catSelect.value = this.filters.categoryId;
+    catGroup.appendChild(catSelect);
+    form.appendChild(catGroup);
+
+    const clasifGroup = create('div', { className: 'form-group' });
+    clasifGroup.appendChild(create('label', { textContent: 'Clasificación' }));
+    const clasifSelect = create('select', { className: 'form-control' });
+    clasifSelect.appendChild(create('option', { value: '', textContent: 'Todas' }));
+    clasifSelect.appendChild(create('option', { value: 'fijo', textContent: 'Fijo' }));
+    clasifSelect.appendChild(create('option', { value: 'variable', textContent: 'Variable' }));
+    clasifSelect.value = this.filters.clasificacion;
+    clasifGroup.appendChild(clasifSelect);
+    form.appendChild(clasifGroup);
+
+    const textGroup = create('div', { className: 'form-group' });
+    textGroup.appendChild(create('label', { textContent: 'Buscar por título' }));
+    const textInput = create('input', {
+      className: 'form-control',
+      type: 'text',
+      placeholder: 'Texto a buscar...',
+      value: this.filters.texto
+    });
+    textGroup.appendChild(textInput);
+    form.appendChild(textGroup);
+
+    const montoRow = create('div', { style: { display: 'flex', gap: '8px' } });
+    const minGroup = create('div', { className: 'form-group', style: { flex: 1 } });
+    minGroup.appendChild(create('label', { textContent: 'Monto mínimo' }));
+    const minInput = create('input', {
+      className: 'form-control',
+      type: 'number',
+      step: '0.01',
+      min: '0',
+      placeholder: '0',
+      value: this.filters.montoMin
+    });
+    minGroup.appendChild(minInput);
+    montoRow.appendChild(minGroup);
+    const maxGroup = create('div', { className: 'form-group', style: { flex: 1 } });
+    maxGroup.appendChild(create('label', { textContent: 'Monto máximo' }));
+    const maxInput = create('input', {
+      className: 'form-control',
+      type: 'number',
+      step: '0.01',
+      min: '0',
+      placeholder: 'Sin límite',
+      value: this.filters.montoMax
+    });
+    maxGroup.appendChild(maxInput);
+    montoRow.appendChild(maxGroup);
+    form.appendChild(montoRow);
+
+    const fechaRow = create('div', { style: { display: 'flex', gap: '8px' } });
+    const fdGroup = create('div', { className: 'form-group', style: { flex: 1 } });
+    fdGroup.appendChild(create('label', { textContent: 'Desde' }));
+    const fdInput = create('input', {
+      className: 'form-control',
+      type: 'date',
+      value: this.filters.fechaDesde
+    });
+    fdGroup.appendChild(fdInput);
+    fechaRow.appendChild(fdGroup);
+    const fhGroup = create('div', { className: 'form-group', style: { flex: 1 } });
+    fhGroup.appendChild(create('label', { textContent: 'Hasta' }));
+    const fhInput = create('input', {
+      className: 'form-control',
+      type: 'date',
+      value: this.filters.fechaHasta
+    });
+    fhGroup.appendChild(fhInput);
+    fechaRow.appendChild(fhGroup);
+    form.appendChild(fechaRow);
+
+    const footer = create('div', { style: { display: 'flex', gap: '8px' } });
+    footer.appendChild(create('button', {
+      className: 'btn btn-ghost',
+      textContent: 'Limpiar',
+      onClick: () => {
+        this.filters = { tipo: '', categoryId: '', clasificacion: '', texto: '', montoMin: '', montoMax: '', fechaDesde: '', fechaHasta: '' };
+        Modal.hide();
+        this.render({ month: this.currentMonth });
+      }
+    }));
+    footer.appendChild(create('button', {
+      className: 'btn btn-primary',
+      textContent: 'Aplicar',
+      onClick: () => {
+        this.filters.tipo = tipoSelect.value;
+        this.filters.categoryId = catSelect.value;
+        this.filters.clasificacion = clasifSelect.value;
+        this.filters.texto = textInput.value.trim();
+        this.filters.montoMin = minInput.value;
+        this.filters.montoMax = maxInput.value;
+        this.filters.fechaDesde = fdInput.value;
+        this.filters.fechaHasta = fhInput.value;
+        Modal.hide();
+        this.render({ month: this.currentMonth });
+      }
+    }));
+
+    Modal.show('Filtrar transacciones', form, { footer });
   }
 };

@@ -57,11 +57,11 @@ const TransactionForm = {
     updateCategoryVisibility();
 
     const titleGroup = create('div', { className: 'form-group' });
-    titleGroup.appendChild(create('label', { textContent: 'Título' }));
+    titleGroup.appendChild(create('label', { textContent: 'Título (opcional)' }));
     const titleInput = create('input', {
       className: 'form-control',
       type: 'text',
-      placeholder: 'Ej: Supermercado, Salary...',
+      placeholder: 'Si se deja vacío, se usa el nombre de la categoría',
       value: transaction?.titulo || ''
     });
     titleGroup.appendChild(titleInput);
@@ -177,9 +177,15 @@ const TransactionForm = {
       textContent: 'Guardar'
     });
     on(saveBtn, 'click', async () => {
+      let titulo = titleInput.value.trim();
+      if (!titulo && selectedType !== 'income') {
+        const catOption = categorySelect.options[categorySelect.selectedIndex];
+        titulo = catOption ? catOption.textContent.trim() : '';
+      }
+
       const data = {
         tipo: selectedType,
-        titulo: titleInput.value.trim(),
+        titulo,
         monto: parseFloat(amountInput.value),
         fecha: dateInput.value,
         clasificacion: clasifSelect.value
@@ -197,7 +203,6 @@ const TransactionForm = {
         }
       }
 
-      if (!data.titulo) return showToast('El título es obligatorio', 'error');
       if (!data.monto || data.monto <= 0) return showToast('El monto debe ser positivo', 'error');
 
       try {
