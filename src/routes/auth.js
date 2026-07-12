@@ -173,7 +173,86 @@ router.post('/reset-password', async (req, res) => {
     res.json({ ok: true, message: 'Contraseña actualizada correctamente' });
   } catch (err) {
     console.error('[RESET-PASSWORD]', err);
-    res.status(500).json({ error: 'Error al restablecer la contraseña' });
+    res.status(500).json({ error: 'Error al restablecer contraseña' });
+  }
+});
+
+router.post('/change-password', async (req, res) => {
+  try {
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ error: 'No autenticado' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Contraseña actual y nueva contraseña son obligatorias' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    }
+
+    const db = req.app.locals.db;
+    const user = db.findUserById(req.session.userId);
+    if (!user) {
+      return res.status(401).json({ error: 'Usuario no encontrado' });
+    }
+
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: 'La contraseña actual es incorrecta' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    db.updateUser(user.id, { password: hashedPassword });
+
+    res.json({ ok: true, message: 'Contraseña actualizada correctamente' });
+  } catch (err) {
+    console.error('[CHANGE-PASSWORD]', err);
+    res.status(500).json({ error: 'Error al cambiar contraseña' });
+  }
+});
+
+router.post('/change-email', async (req, res) => {
+  try {
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ error: 'No autenticado' });
+    }
+
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email y contraseña son obligatorios' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Email inválido' });
+    }
+
+    const db = req.app.locals.db;
+    const user = db.findUserById(req.session.userId);
+    if (!user) {
+      return res.status(401).json({ error: 'Usuario no encontrado' });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: 'La contraseña es incorrecta' });
+    }
+
+    const existing = db.findUserByEmail(email.toLowerCase());
+    if (existing && existing.id !== user.id) {
+      return res.status(409).json({ error: 'Ya existe una cuenta con ese email' });
+    }
+
+    db.updateUser(user.id, { email: email.toLowerCase() });
+
+    res.json({ ok: true, email: email.toLowerCase(), message: 'Email actualizado correctamente' });
+  } catch (err) {
+    console.error('[CHANGE-EMAIL]', err);
+    res.status(500).json({ error: 'Error al cambiar email' });
   }
 });
 

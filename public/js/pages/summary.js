@@ -36,7 +36,10 @@ const SummaryPage = {
     statsRow.appendChild(this.createStat('Ahorro', `${savingsSign}${formatearEuro(summary.ahorro)}`, savingsColor));
     content.appendChild(statsRow);
 
-    if (summary.porCategoria.length > 0) {
+    const flatCats = summary.porCategoria.filter(c => c.neto > 0);
+    const chartCats = summary.porCategoria.filter(c => c.neto > 0 && !c.parentId);
+
+    if (chartCats.length > 0) {
       const chartCard = create('div', { className: 'chart-container' });
       chartCard.appendChild(create('div', { className: 'chart-title', textContent: 'Distribución de gastos' }));
 
@@ -46,7 +49,7 @@ const SummaryPage = {
       chartCard.appendChild(chartWrapper);
 
       const legend = create('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '16px', justifyContent: 'center' } });
-      summary.porCategoria.forEach(cat => {
+      chartCats.forEach(cat => {
         const item = create('div', { className: 'category-badge' });
         item.appendChild(create('span', {
           className: 'category-dot',
@@ -58,7 +61,7 @@ const SummaryPage = {
       chartCard.appendChild(legend);
       content.appendChild(chartCard);
 
-      const segments = summary.porCategoria.map(cat => ({
+      const segments = chartCats.map(cat => ({
         value: cat.neto,
         color: cat.color || '#6c6c7c',
         label: cat.nombre
@@ -74,18 +77,19 @@ const SummaryPage = {
       style: { marginBottom: '16px' }
     }));
 
-    if (summary.porCategoria.length === 0) {
+    if (flatCats.length === 0) {
       catSection.appendChild(create('p', {
         textContent: 'No hay gastos este mes',
         className: 'text-muted text-center'
       }));
     } else {
-      const maxNeto = Math.max(...summary.porCategoria.map(c => c.neto), 1);
-      summary.porCategoria.forEach(cat => {
-        const pct = ((cat.neto / summary.gastosNetos) * 100).toFixed(1);
+      const maxNeto = Math.max(...flatCats.map(c => c.neto), 1);
+
+      const renderBreakdown = (cat, depth) => {
+        const pct = summary.gastosNetos > 0 ? ((cat.neto / summary.gastosNetos) * 100).toFixed(1) : '0.0';
         const barWidth = (cat.neto / maxNeto) * 100;
 
-        const row = create('div', { style: { marginBottom: '16px' } });
+        const row = create('div', { style: { marginBottom: '12px', paddingLeft: `${depth * 16}px` } });
         row.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <span class="category-badge">
@@ -99,7 +103,11 @@ const SummaryPage = {
           </div>
         `;
         catSection.appendChild(row);
-      });
+
+        (cat.children || []).forEach(child => renderBreakdown(child, depth + 1));
+      };
+
+      summary.porCategoria.forEach(cat => renderBreakdown(cat, 0));
     }
 
     content.appendChild(catSection);

@@ -1,5 +1,6 @@
+const fs = require('fs');
 const JsonDB = require('../../src/db/jsondb');
-const { setupTestDb, cleanupTestDb } = require('../helpers/setup');
+const { setupTestDb, cleanupTestDb, TEMP_DATA_DIR } = require('../helpers/setup');
 
 describe('JsonDB', () => {
   let db;
@@ -40,6 +41,18 @@ describe('JsonDB', () => {
       expect(found).toBeNull();
     });
 
+    it('should return null for non-existent name', () => {
+      const found = db.findUserByName('Ghost');
+      expect(found).toBeNull();
+    });
+
+    it('should find a user by name', () => {
+      db.createUser({ email: 'name@test.com', password: 'x', nombre: 'FindByName' });
+      const found = db.findUserByName('FindByName');
+      expect(found).not.toBeNull();
+      expect(found.email).toBe('name@test.com');
+    });
+
     it('should update a user', () => {
       const user = db.createUser({ email: 'u@test.com', password: 'x', nombre: 'Old' });
       const updated = db.updateUser(user.id, { nombre: 'New' });
@@ -47,6 +60,11 @@ describe('JsonDB', () => {
 
       const found = db.findUserById(user.id);
       expect(found.nombre).toBe('New');
+    });
+
+    it('should return null for non-existent user id', () => {
+      const found = db.findUserById('nonexistent-id');
+      expect(found).toBeNull();
     });
   });
 
@@ -94,6 +112,18 @@ describe('JsonDB', () => {
 
       const updated = db.update('categories', cat.id, { nombre: 'New' }, user.id);
       expect(updated.nombre).toBe('New');
+    });
+
+    it('should return null when updating non-existent category', () => {
+      const user = db.createUser({ email: 'updnull@test.com', password: 'x', nombre: 'A' });
+      const result = db.update('categories', 'nonexistent', { nombre: 'X' }, user.id);
+      expect(result).toBeNull();
+    });
+
+    it('should return false when removing non-existent category', () => {
+      const user = db.createUser({ email: 'rmnull@test.com', password: 'x', nombre: 'A' });
+      const result = db.remove('categories', 'nonexistent', user.id);
+      expect(result).toBe(false);
     });
   });
 
@@ -151,6 +181,72 @@ describe('JsonDB', () => {
     });
   });
 
+  describe('findAll with filter', () => {
+    it('should filter items by property', () => {
+      const user = db.createUser({ email: 'filt@test.com', password: 'x', nombre: 'A' });
+      db.create('transactions', {
+        userId: user.id, tipo: 'expense', monto: 10, titulo: 'Exp', fecha: '2024-03-15'
+      }, user.id);
+      db.create('transactions', {
+        userId: user.id, tipo: 'income', monto: 100, titulo: 'Inc', fecha: '2024-03-15'
+      }, user.id);
+
+      const expenses = db.findAll('transactions', user.id, { tipo: 'expense' });
+      expect(expenses).toHaveLength(1);
+      expect(expenses[0].tipo).toBe('expense');
+    });
+
+    it('should return empty array when filter matches nothing', () => {
+      const user = db.createUser({ email: 'emptyfilt@test.com', password: 'x', nombre: 'A' });
+      const results = db.findAll('transactions', user.id, { tipo: 'refund' });
+      expect(results).toHaveLength(0);
+    });
+  });
+
+  describe('findById', () => {
+    it('should find an item by id', () => {
+      const user = db.createUser({ email: 'findid@test.com', password: 'x', nombre: 'A' });
+      const cat = db.create('categories', { userId: user.id, nombre: 'FindMe' }, user.id);
+      const found = db.findById('categories', cat.id, user.id);
+      expect(found).not.toBeNull();
+      expect(found.nombre).toBe('FindMe');
+    });
+
+    it('should return null for non-existent id', () => {
+      const user = db.createUser({ email: 'findnull@test.com', password: 'x', nombre: 'A' });
+      const found = db.findById('categories', 'nope', user.id);
+      expect(found).toBeNull();
+    });
+  });
+
+  describe('query', () => {
+    it('should return filtered copies of items', () => {
+      const user = db.createUser({ email: 'query@test.com', password: 'x', nombre: 'A' });
+      db.create('transactions', {
+        userId: user.id, tipo: 'expense', monto: 10, titulo: 'Q1', fecha: '2024-03-15'
+      }, user.id);
+      db.create('transactions', {
+        userId: user.id, tipo: 'income', monto: 20, titulo: 'Q2', fecha: '2024-03-15'
+      }, user.id);
+
+      const results = db.query('transactions', user.id, t => t.tipo === 'expense');
+      expect(results).toHaveLength(1);
+      expect(results[0].titulo).toBe('Q1');
+    });
+
+    it('should return copies, not references', () => {
+      const user = db.createUser({ email: 'copy@test.com', password: 'x', nombre: 'A' });
+      db.create('transactions', {
+        userId: user.id, tipo: 'expense', monto: 10, titulo: 'Copy', fecha: '2024-03-15'
+      }, user.id);
+
+      const results = db.query('transactions', user.id, () => true);
+      results[0].titulo = 'Modified';
+      const fresh = db.findAll('transactions', user.id);
+      expect(fresh[0].titulo).toBe('Copy');
+    });
+  });
+
   describe('atomic writes', () => {
     it('should handle concurrent writes without corruption', () => {
       const user = db.createUser({ email: 'atomic@test.com', password: 'x', nombre: 'A' });
@@ -163,6 +259,66 @@ describe('JsonDB', () => {
 
       const txs = db.findAll('transactions', user.id);
       expect(txs).toHaveLength(10);
+    });
+  });
+
+  describe('cache', () => {
+    it('should clear cache', () => {
+      const user = db.createUser({ email: 'cache@test.com', password: 'x', nombre: 'A' });
+      db.create('transactions', {
+        userId: user.id, tipo: 'expense', monto: 5, titulo: 'Cached', fecha: '2024-03-15'
+      }, user.id);
+
+      const before = db.findAll('transactions', user.id);
+      expect(before).toHaveLength(1);
+
+      db.clearCache();
+      const after = db.findAll('transactions', user.id);
+      expect(after).toHaveLength(1);
+    });
+  });
+
+  describe('read errors', () => {
+    it('should return empty array for corrupted JSON file', () => {
+      const corruptPath = require('path').join(TEMP_DATA_DIR, 'corrupt.json');
+      fs.writeFileSync(corruptPath, 'NOT VALID JSON {{{', 'utf-8');
+
+      const user = db.createUser({ email: 'corrupt@test.com', password: 'x', nombre: 'A' });
+      db.clearCache();
+      const data = db._readCollection('corrupt');
+      expect(data).toEqual([]);
+    });
+  });
+
+  describe('global collection (no userId)', () => {
+    it('should store and read global collections', () => {
+      db.create('settings', { key: 'theme', value: 'dark' });
+      const settings = db.findAll('settings');
+      expect(settings).toHaveLength(1);
+      expect(settings[0].key).toBe('theme');
+    });
+
+    it('should remove from global collection', () => {
+      const item = db.create('settings', { key: 'lang', value: 'es' });
+      const result = db.remove('settings', item.id);
+      expect(result).toBe(true);
+      expect(db.findAll('settings')).toHaveLength(0);
+    });
+
+    it('should update global collection', () => {
+      const item = db.create('settings', { key: 'theme', value: 'light' });
+      const updated = db.update('settings', item.id, { value: 'dark' });
+      expect(updated.value).toBe('dark');
+    });
+
+    it('should return null when updating non-existent global item', () => {
+      const result = db.update('settings', 'nonexistent', { value: 'x' });
+      expect(result).toBeNull();
+    });
+
+    it('should return false when removing non-existent global item', () => {
+      const result = db.remove('settings', 'nonexistent');
+      expect(result).toBe(false);
     });
   });
 });

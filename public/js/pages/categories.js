@@ -26,7 +26,7 @@ const CategoriesPage = {
       })
     ]);
 
-    on(header.lastChild, 'click', () => this.showCreateModal(content));
+    on(header.lastChild, 'click', () => this.showCreateModal(content, categories));
 
     content.appendChild(header);
 
@@ -38,10 +38,24 @@ const CategoriesPage = {
       return;
     }
 
+    const catMap = {};
+    categories.forEach(c => catMap[c.id] = c);
+
+    const parents = categories.filter(c => !c.parentId);
+    const childrenMap = {};
+    categories.forEach(c => {
+      if (c.parentId) {
+        if (!childrenMap[c.parentId]) childrenMap[c.parentId] = [];
+        childrenMap[c.parentId].push(c);
+      }
+    });
+
     const list = create('ul', { className: 'category-list' });
 
-    categories.forEach(cat => {
+    const renderCategory = (cat, depth) => {
       const li = create('li', { className: 'category-item' });
+      if (depth > 0) li.classList.add('category-child');
+      li.style.paddingLeft = `${16 + depth * 24}px`;
 
       const left = create('div', { className: 'category-item-left' });
       left.appendChild(create('span', {
@@ -50,14 +64,41 @@ const CategoriesPage = {
       }));
       left.appendChild(create('span', { textContent: cat.nombre }));
 
+      if (depth > 0) {
+        left.appendChild(create('span', {
+          className: 'category-parent-badge',
+          textContent: catMap[cat.parentId]?.nombre || '',
+          style: { fontSize: 'var(--font-xs)', color: 'var(--text-muted)', marginLeft: '8px' }
+        }));
+      }
+
+      const childCount = (childrenMap[cat.id] || []).length;
+      if (childCount > 0) {
+        left.appendChild(create('span', {
+          className: 'category-child-count',
+          textContent: `(${childCount})`,
+          style: { fontSize: 'var(--font-xs)', color: 'var(--text-muted)' }
+        }));
+      }
+
       const actions = create('div', { className: 'category-item-actions' });
+
+      if (depth === 0) {
+        const addSubBtn = create('button', {
+          className: 'icon-btn',
+          innerHTML: '➕',
+          title: 'Agregar subcategoría'
+        });
+        on(addSubBtn, 'click', () => this.showCreateModal(content, categories, cat.id));
+        actions.appendChild(addSubBtn);
+      }
 
       const editBtn = create('button', {
         className: 'icon-btn',
         innerHTML: '✏️',
         title: 'Editar'
       });
-      on(editBtn, 'click', () => this.showEditModal(content, cat));
+      on(editBtn, 'click', () => this.showEditModal(content, cat, categories));
 
       const deleteBtn = create('button', {
         className: 'icon-btn danger',
@@ -72,12 +113,15 @@ const CategoriesPage = {
       li.appendChild(left);
       li.appendChild(actions);
       list.appendChild(li);
-    });
 
+      (childrenMap[cat.id] || []).forEach(child => renderCategory(child, depth + 1));
+    };
+
+    parents.forEach(cat => renderCategory(cat, 0));
     content.appendChild(list);
   },
 
-  showCreateModal(content) {
+  showCreateModal(content, categories, preselectedParentId) {
     const form = create('div');
 
     const nameGroup = create('div', { className: 'form-group' });
@@ -89,6 +133,17 @@ const CategoriesPage = {
     });
     nameGroup.appendChild(nameInput);
     form.appendChild(nameGroup);
+
+    const parentGroup = create('div', { className: 'form-group' });
+    parentGroup.appendChild(create('label', { textContent: 'Categoría padre (opcional)' }));
+    const parentSelect = create('select', { className: 'form-control' });
+    parentSelect.appendChild(create('option', { value: '', textContent: 'Ninguna (categoría principal)' }));
+    categories.filter(c => !c.parentId).forEach(cat => {
+      parentSelect.appendChild(create('option', { value: cat.id, textContent: cat.nombre }));
+    });
+    if (preselectedParentId) parentSelect.value = preselectedParentId;
+    parentGroup.appendChild(parentSelect);
+    form.appendChild(parentGroup);
 
     const colorGroup = create('div', { className: 'form-group' });
     colorGroup.appendChild(create('label', { textContent: 'Color' }));
@@ -112,7 +167,9 @@ const CategoriesPage = {
       if (!nombre) return showToast('El nombre es obligatorio', 'error');
 
       try {
-        await API.categories.create({ nombre, color: colorPicker.dataset.selected || null });
+        const data = { nombre, color: colorPicker.dataset.selected || null };
+        if (parentSelect.value) data.parentId = parentSelect.value;
+        await API.categories.create(data);
         Modal.hide();
         showToast('Categoría creada');
         this.render();
@@ -125,7 +182,7 @@ const CategoriesPage = {
     nameInput.focus();
   },
 
-  showEditModal(content, cat) {
+  showEditModal(content, cat, categories) {
     const form = create('div');
 
     const nameGroup = create('div', { className: 'form-group' });
@@ -137,6 +194,17 @@ const CategoriesPage = {
     });
     nameGroup.appendChild(nameInput);
     form.appendChild(nameGroup);
+
+    const parentGroup = create('div', { className: 'form-group' });
+    parentGroup.appendChild(create('label', { textContent: 'Categoría padre' }));
+    const parentSelect = create('select', { className: 'form-control' });
+    parentSelect.appendChild(create('option', { value: '', textContent: 'Ninguna (categoría principal)' }));
+    categories.filter(c => !c.parentId && c.id !== cat.id).forEach(c => {
+      parentSelect.appendChild(create('option', { value: c.id, textContent: c.nombre }));
+    });
+    parentSelect.value = cat.parentId || '';
+    parentGroup.appendChild(parentSelect);
+    form.appendChild(parentGroup);
 
     const colorGroup = create('div', { className: 'form-group' });
     colorGroup.appendChild(create('label', { textContent: 'Color' }));
@@ -160,7 +228,8 @@ const CategoriesPage = {
       if (!nombre) return showToast('El nombre es obligatorio', 'error');
 
       try {
-        await API.categories.update(cat.id, { nombre, color: colorPicker.dataset.selected || null });
+        const data = { nombre, color: colorPicker.dataset.selected || null, parentId: parentSelect.value || null };
+        await API.categories.update(cat.id, data);
         Modal.hide();
         showToast('Categoría actualizada');
         this.render();

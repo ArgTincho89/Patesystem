@@ -1,9 +1,42 @@
 const LoginPage = {
-  render() {
+  async render() {
     const content = $('#page-content');
     const navbar = $('#navbar');
     navbar.style.display = 'none';
     content.style.paddingBottom = 'var(--space-xl)';
+
+    let versionData = { version: '1.1.0' };
+    try {
+      const res = await fetch('/version.json');
+      versionData = await res.json();
+    } catch {}
+
+    const CHANGELOG = [
+      {
+        v: '1.1.0', date: '12/07/2026',
+        items: [
+          'Categorías jerárquicas (padre/hija)',
+          'Transacciones recurrentes (mensual, semestral, anual)',
+          'Sección Gastos fijos en Home',
+          'Página de Perfil (foto, email, contraseña)',
+          'Ojo para ocultar ingresos en Home',
+          'Estadísticas con gráfico mensual',
+          'UI mobile-first mejorada'
+        ]
+      },
+      {
+        v: '1.0.0', date: '12/07/2026',
+        items: [
+          'Versión inicial',
+          'Login por nombre de usuario',
+          'CRUD de categorías y transacciones',
+          'Resumen mensual con gráficos',
+          'Tendencias multi-mes',
+          'PWA offline',
+          'Tema oscuro'
+        ]
+      }
+    ];
 
     content.innerHTML = `
       <div class="login-page">
@@ -19,32 +52,54 @@ const LoginPage = {
           <form class="login-form active" id="login-form">
             <div class="form-group">
               <label>Nombre de usuario</label>
-              <input type="text" class="form-control" id="login-nombre" required>
+              <input type="text" class="form-control" id="login-nombre" required autocomplete="username">
             </div>
             <div class="form-group">
               <label>Contraseña</label>
-              <input type="password" class="form-control" id="login-password" required>
+              <input type="password" class="form-control" id="login-password" required autocomplete="current-password">
             </div>
             <button type="submit" class="btn btn-primary btn-full">Iniciar sesión</button>
             <p class="text-center mt-md">
               <a href="#" id="forgot-link" style="font-size: var(--font-sm);">¿Olvidaste tu contraseña?</a>
             </p>
+            <p class="text-center mt-sm">
+              <button type="button" id="clear-cache-btn" class="btn btn-ghost btn-sm" style="font-size: var(--font-xs); opacity: 0.5;">Limpiar caché y recargar</button>
+            </p>
           </form>
           <form class="login-form" id="register-form">
             <div class="form-group">
               <label>Nombre</label>
-              <input type="text" class="form-control" id="register-nombre" required>
+              <input type="text" class="form-control" id="register-nombre" required autocomplete="username">
             </div>
             <div class="form-group">
               <label>Email</label>
-              <input type="email" class="form-control" id="register-email" required>
+              <input type="email" class="form-control" id="register-email" required autocomplete="email">
             </div>
             <div class="form-group">
               <label>Contraseña</label>
-              <input type="password" class="form-control" id="register-password" required minlength="6">
+              <input type="password" class="form-control" id="register-password" required minlength="6" autocomplete="new-password">
             </div>
             <button type="submit" class="btn btn-primary btn-full">Crear cuenta</button>
           </form>
+          <div class="version-section">
+            <button type="button" class="version-toggle" id="version-toggle">
+              v${versionData.version}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="version-changelog" id="version-changelog">
+              ${CHANGELOG.map(entry => `
+                <div class="changelog-entry">
+                  <div class="changelog-header">
+                    <span class="changelog-version">v${entry.v}</span>
+                    <span class="changelog-date">${entry.date}</span>
+                  </div>
+                  <ul class="changelog-list">
+                    ${entry.items.map(item => `<li>${item}</li>`).join('')}
+                  </ul>
+                </div>
+              `).join('')}
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -56,6 +111,10 @@ const LoginPage = {
         tab.classList.add('active');
         $(`#${tab.dataset.tab}-form`).classList.add('active');
       });
+    });
+
+    on($('#version-toggle'), 'click', () => {
+      $('#version-changelog').classList.toggle('open');
     });
 
     on($('#login-form'), 'submit', async (e) => {
@@ -119,6 +178,24 @@ const LoginPage = {
           showToast(err.message, 'error');
         }
       });
+    });
+
+    on($('#clear-cache-btn'), 'click', async () => {
+      try {
+        if ('caches' in window) {
+          const names = await caches.keys();
+          await Promise.all(names.map(name => caches.delete(name)));
+        }
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+        localStorage.clear();
+        sessionStorage.clear();
+        location.reload(true);
+      } catch (err) {
+        location.reload(true);
+      }
     });
   },
 

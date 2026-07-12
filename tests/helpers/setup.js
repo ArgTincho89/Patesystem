@@ -4,10 +4,31 @@ const { v4: uuidv4 } = require('uuid');
 
 const TEMP_DATA_DIR = path.join(__dirname, '..', '.test-data');
 
-function setupTestDb() {
-  if (fs.existsSync(TEMP_DATA_DIR)) {
-    fs.rmSync(TEMP_DATA_DIR, { recursive: true });
+function safeRmSync(dir) {
+  try {
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  } catch {
+    try {
+      if (fs.existsSync(dir)) {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            safeRmSync(fullPath);
+          } else {
+            try { fs.unlinkSync(fullPath); } catch {}
+          }
+        }
+        try { fs.rmdirSync(dir); } catch {}
+      }
+    } catch {}
   }
+}
+
+function setupTestDb() {
+  safeRmSync(TEMP_DATA_DIR);
   fs.mkdirSync(TEMP_DATA_DIR, { recursive: true });
 
   const JsonDB = require('../../src/db/jsondb');
@@ -15,9 +36,7 @@ function setupTestDb() {
 }
 
 function cleanupTestDb() {
-  if (fs.existsSync(TEMP_DATA_DIR)) {
-    fs.rmSync(TEMP_DATA_DIR, { recursive: true });
-  }
+  safeRmSync(TEMP_DATA_DIR);
 }
 
 function createTestUser(db, overrides = {}) {
@@ -34,7 +53,7 @@ function createTestCategory(db, userId, overrides = {}) {
   return db.create('categories', {
     userId,
     nombre: 'Test Category',
-    color: '#FF0000',
+    color: '#FF000',
     orden: 1,
     ...overrides
   }, userId);
@@ -50,11 +69,6 @@ function createTestTransaction(db, userId, overrides = {}) {
     fecha: '2024-03-15',
     ...overrides
   }, userId);
-}
-
-function createAuthenticatedAgent(app, userData) {
-  const session = require('supertest-session');
-  return session(app);
 }
 
 module.exports = {

@@ -37,15 +37,18 @@
   --space-lg: 24px;
   --space-xl: 32px;
 
-  --font-sm: 0.8rem;
+  --font-xs: 0.7rem;
+  --font-sm: 0.85rem;
   --font-base: 1rem;
   --font-md: 1.1rem;
   --font-lg: 1.3rem;
-  --font-xl: 1.8rem;
-  --font-2xl: 2.2rem;
+  --font-xl: 1.6rem;
+  --font-2xl: 2rem;
 
-  --navbar-height: 60px;
+  --navbar-height: 64px;
   --header-height: 56px;
+  --touch-min: 44px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   --transition: 0.2s ease;
 }

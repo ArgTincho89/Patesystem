@@ -43,7 +43,8 @@ const API = {
     list(month) { return API.get(`/transactions?month=${month}`); },
     create(data) { return API.post('/transactions', data); },
     update(id, data) { return API.put(`/transactions/${id}`, data); },
-    delete(id) { return API.delete(`/transactions/${id}`); }
+    delete(id) { return API.delete(`/transactions/${id}`); },
+    recurringTotal(month) { return API.get(`/transactions/recurring-total?month=${month}`); }
   },
 
   summary: {

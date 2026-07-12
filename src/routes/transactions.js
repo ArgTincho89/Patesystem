@@ -5,21 +5,69 @@ const router = express.Router();
 
 router.use(requireAuth);
 
+function generateRecurringInstances(tx, month) {
+  if (!tx.recurrente || !tx.frecuencia) return [];
+
+  const startDate = new Date(tx.fecha);
+  const [targetYear, targetMonth] = month.split('-').map(Number);
+  const targetDate = new Date(targetYear, targetMonth - 1, startDate.getDate());
+
+  if (targetDate < startDate) return [];
+
+  if (tx.fechaFin) {
+    const endDate = new Date(tx.fechaFin);
+    if (targetDate > endDate) return [];
+  }
+
+  let match = false;
+  const startYear = startDate.getFullYear();
+  const startMonth = startDate.getMonth();
+  const diffMonths = (targetYear - startYear) * 12 + (targetMonth - 1) - startMonth;
+
+  if (tx.frecuencia === 'monthly') {
+    match = diffMonths >= 0;
+  } else if (tx.frecuencia === 'semiannual') {
+    match = diffMonths >= 0 && diffMonths % 6 === 0;
+  } else if (tx.frecuencia === 'annual') {
+    match = diffMonths >= 0 && diffMonths % 12 === 0;
+  }
+
+  if (!match) return [];
+
+  return [{
+    ...tx,
+    fecha: `${month}-${String(startDate.getDate()).padStart(2, '0')}`,
+    isRecurringInstance: true,
+    originalId: tx.id,
+    id: `${tx.id}-${month}`
+  }];
+}
+
 router.get('/', (req, res) => {
   const db = req.app.locals.db;
   const userId = req.session.userId;
   const { month } = req.query;
 
-  let filter = {};
-  if (month) {
-    filter.fecha = (item) => item.fecha && item.fecha.startsWith(month);
-  }
-
   const transactions = db.findAll('transactions', userId);
 
-  let filtered = transactions;
+  let filtered;
   if (month) {
-    filtered = transactions.filter(t => t.fecha && t.fecha.startsWith(month));
+    filtered = [];
+    transactions.forEach(tx => {
+      if (tx.fecha && tx.fecha.startsWith(month)) {
+        filtered.push(tx);
+      }
+      if (tx.recurrente && tx.frecuencia) {
+        const instances = generateRecurringInstances(tx, month);
+        instances.forEach(inst => {
+          if (!filtered.find(f => f.id === inst.id)) {
+            filtered.push(inst);
+          }
+        });
+      }
+    });
+  } else {
+    filtered = transactions;
   }
 
   filtered.sort((a, b) => {
@@ -32,8 +80,42 @@ router.get('/', (req, res) => {
   res.json(filtered);
 });
 
+router.get('/recurring-total', (req, res) => {
+  const db = req.app.locals.db;
+  const userId = req.session.userId;
+  const { month } = req.query;
+
+  if (!month) {
+    return res.status(400).json({ error: 'Parámetro month requerido' });
+  }
+
+  const transactions = db.findAll('transactions', userId);
+  let totalRecurrentes = 0;
+  const recurrentes = [];
+
+  transactions.forEach(tx => {
+    if (tx.recurrente && tx.frecuencia) {
+      const instances = generateRecurringInstances(tx, month);
+      if (instances.length > 0 && tx.tipo === 'expense') {
+        totalRecurrentes += tx.monto;
+        recurrentes.push({
+          titulo: tx.titulo,
+          monto: tx.monto,
+          categoryId: tx.categoryId
+        });
+      }
+    }
+  });
+
+  res.json({
+    month,
+    total: Math.round(totalRecurrentes * 100) / 100,
+    items: recurrentes
+  });
+});
+
 router.post('/', (req, res) => {
-  const { tipo, monto, titulo, categoryId, fecha } = req.body;
+  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin } = req.body;
 
   if (!tipo || !['expense', 'income', 'refund'].includes(tipo)) {
     return res.status(400).json({ error: 'Tipo inválido. Debe ser: expense, income o refund' });
@@ -49,6 +131,10 @@ router.post('/', (req, res) => {
 
   if ((tipo === 'expense' || tipo === 'refund') && !categoryId) {
     return res.status(400).json({ error: 'Los gastos y reembolsos requieren una categoría' });
+  }
+
+  if (recurrente && frecuencia && !['monthly', 'semiannual', 'annual'].includes(frecuencia)) {
+    return res.status(400).json({ error: 'Frecuencia inválida. Debe ser: monthly, semiannual o annual' });
   }
 
   const db = req.app.locals.db;
@@ -67,7 +153,10 @@ router.post('/', (req, res) => {
     monto: Math.round(monto * 100) / 100,
     titulo: titulo.trim(),
     categoryId: categoryId || null,
-    fecha: fecha || new Date().toISOString().split('T')[0]
+    fecha: fecha || new Date().toISOString().split('T')[0],
+    recurrente: recurrente || false,
+    frecuencia: recurrente ? (frecuencia || 'monthly') : null,
+    fechaFin: recurrente ? (fechaFin || null) : null
   }, userId);
 
   res.status(201).json(transaction);
@@ -77,7 +166,7 @@ router.put('/:id', (req, res) => {
   const db = req.app.locals.db;
   const userId = req.session.userId;
   const { id } = req.params;
-  const { tipo, monto, titulo, categoryId, fecha } = req.body;
+  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin } = req.body;
 
   const transaction = db.findById('transactions', id, userId);
   if (!transaction) {
@@ -100,6 +189,16 @@ router.put('/:id', (req, res) => {
   if (titulo !== undefined) updates.titulo = titulo.trim();
   if (categoryId !== undefined) updates.categoryId = categoryId || null;
   if (fecha !== undefined) updates.fecha = fecha;
+  if (recurrente !== undefined) updates.recurrente = recurrente;
+  if (recurrente === false) {
+    updates.frecuencia = null;
+    updates.fechaFin = null;
+  } else if (frecuencia !== undefined) {
+    updates.frecuencia = frecuencia || 'monthly';
+  }
+  if (recurrente !== false && fechaFin !== undefined) {
+    updates.fechaFin = fechaFin || null;
+  }
 
   const finalTipo = updates.tipo || transaction.tipo;
   const finalCategoryId = updates.categoryId !== undefined ? updates.categoryId : transaction.categoryId;

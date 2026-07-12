@@ -19,6 +19,7 @@ const TransactionForm = {
         $$('.type-btn', form).forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         updateCategoryVisibility();
+        updateRecurringVisibility();
       });
       typeSelector.appendChild(btn);
     });
@@ -27,10 +28,23 @@ const TransactionForm = {
     const categoryGroup = create('div', { className: 'form-group' });
     const categoryLabel = create('label', { textContent: 'Categoría' });
     const categorySelect = create('select', { className: 'form-control' });
-    categories.forEach(cat => {
-      const opt = create('option', { value: cat.id, textContent: cat.nombre });
-      categorySelect.appendChild(opt);
+
+    const parents = categories.filter(c => !c.parentId);
+    const childrenMap = {};
+    categories.forEach(c => {
+      if (c.parentId) {
+        if (!childrenMap[c.parentId]) childrenMap[c.parentId] = [];
+        childrenMap[c.parentId].push(c);
+      }
     });
+
+    parents.forEach(cat => {
+      categorySelect.appendChild(create('option', { value: cat.id, textContent: cat.nombre }));
+      (childrenMap[cat.id] || []).forEach(child => {
+        categorySelect.appendChild(create('option', { value: child.id, textContent: `  └ ${child.nombre}` }));
+      });
+    });
+
     if (selectedCategoryId) categorySelect.value = selectedCategoryId;
     categoryGroup.appendChild(categoryLabel);
     categoryGroup.appendChild(categorySelect);
@@ -73,6 +87,54 @@ const TransactionForm = {
     dateGroup.appendChild(dateInput);
     form.appendChild(dateGroup);
 
+    const recurringGroup = create('div', { className: 'form-group recurring-section' });
+    const recurringLabel = create('label', { className: 'checkbox-label' });
+    const recurringCheckbox = create('input', { type: 'checkbox', className: 'form-checkbox' });
+    recurringLabel.appendChild(recurringCheckbox);
+    recurringLabel.appendChild(document.createTextNode(' Recurrente'));
+    recurringGroup.appendChild(recurringLabel);
+
+    const freqGroup = create('div', { className: 'recurring-options', style: { display: 'none', marginTop: '12px' } });
+
+    const freqSelectGroup = create('div', { className: 'form-group' });
+    freqSelectGroup.appendChild(create('label', { textContent: 'Frecuencia' }));
+    const freqSelect = create('select', { className: 'form-control' });
+    freqSelect.appendChild(create('option', { value: 'monthly', textContent: 'Mensual' }));
+    freqSelect.appendChild(create('option', { value: 'semiannual', textContent: 'Semestral' }));
+    freqSelect.appendChild(create('option', { value: 'annual', textContent: 'Anual' }));
+    freqSelectGroup.appendChild(freqSelect);
+    freqGroup.appendChild(freqSelectGroup);
+
+    const endDateGroup = create('div', { className: 'form-group' });
+    endDateGroup.appendChild(create('label', { textContent: 'Fecha fin (opcional)' }));
+    const endDateInput = create('input', {
+      className: 'form-control',
+      type: 'date',
+      placeholder: 'Indeterminado'
+    });
+    endDateGroup.appendChild(create('input', {
+      type: 'text',
+      className: 'form-control',
+      value: 'Indeterminado',
+      disabled: true,
+      style: { opacity: '0.5' }
+    }));
+    freqGroup.appendChild(endDateGroup);
+
+    recurringGroup.appendChild(freqGroup);
+    form.appendChild(recurringGroup);
+
+    let recurringEnabled = false;
+    on(recurringCheckbox, 'change', () => {
+      recurringEnabled = recurringCheckbox.checked;
+      freqGroup.style.display = recurringEnabled ? 'block' : 'none';
+    });
+
+    function updateRecurringVisibility() {
+      recurringGroup.style.display = (selectedType === 'income') ? 'none' : 'block';
+    }
+    updateRecurringVisibility();
+
     const footer = create('div', { style: { display: 'flex', gap: '8px' } });
     const cancelBtn = create('button', {
       className: 'btn btn-ghost',
@@ -93,6 +155,14 @@ const TransactionForm = {
 
       if (selectedType !== 'income') {
         data.categoryId = categorySelect.value;
+      }
+
+      if (recurringEnabled) {
+        data.recurrente = true;
+        data.frecuencia = freqSelect.value;
+        if (endDateInput.value) {
+          data.fechaFin = endDateInput.value;
+        }
       }
 
       if (!data.titulo) return showToast('El título es obligatorio', 'error');

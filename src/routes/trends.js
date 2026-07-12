@@ -48,6 +48,7 @@ router.get('/', (req, res) => {
         categoryId: cat.id,
         nombre: cat.nombre,
         color: cat.color,
+        parentId: cat.parentId || null,
         gastos: 0,
         reembolsos: 0,
         neto: 0

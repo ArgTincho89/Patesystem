@@ -24,12 +24,15 @@ router.get('/', (req, res) => {
   const porCategoria = {};
 
   const categories = db.findAll('categories', userId);
+  const catMap = {};
+  categories.forEach(c => catMap[c.id] = c);
 
   categories.forEach(cat => {
     porCategoria[cat.id] = {
       categoryId: cat.id,
       nombre: cat.nombre,
       color: cat.color,
+      parentId: cat.parentId || null,
       gastos: 0,
       reembolsos: 0,
       neto: 0
@@ -63,6 +66,24 @@ router.get('/', (req, res) => {
     .filter(cat => cat.gastos > 0 || cat.reembolsos > 0)
     .sort((a, b) => b.neto - a.neto);
 
+  const parentsWithChildren = [];
+  const childMap = {};
+
+  categoriasOrdenadas.forEach(cat => {
+    if (cat.parentId) {
+      if (!childMap[cat.parentId]) childMap[cat.parentId] = [];
+      childMap[cat.parentId].push(cat);
+    } else {
+      parentsWithChildren.push({ ...cat, children: childMap[cat.categoryId] || [] });
+    }
+  });
+
+  categoriasOrdenadas.filter(c => !c.parentId).forEach(cat => {
+    if (!parentsWithChildren.find(p => p.categoryId === cat.categoryId)) {
+      parentsWithChildren.push({ ...cat, children: childMap[cat.categoryId] || [] });
+    }
+  });
+
   res.json({
     month,
     ingresos: Math.round(totalIngresos * 100) / 100,
@@ -70,7 +91,7 @@ router.get('/', (req, res) => {
     reembolsos: Math.round(totalReembolsos * 100) / 100,
     gastosNetos: Math.round(gastosNetos * 100) / 100,
     ahorro: Math.round(ahorro * 100) / 100,
-    porCategoria: categoriasOrdenadas
+    porCategoria: parentsWithChildren
   });
 });
 

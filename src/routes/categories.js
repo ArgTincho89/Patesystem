@@ -13,7 +13,7 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { nombre, color, orden } = req.body;
+  const { nombre, color, orden, parentId } = req.body;
 
   if (!nombre || !nombre.trim()) {
     return res.status(400).json({ error: 'El nombre es obligatorio' });
@@ -22,6 +22,16 @@ router.post('/', (req, res) => {
   const db = req.app.locals.db;
   const userId = req.session.userId;
 
+  if (parentId) {
+    const parent = db.findById('categories', parentId, userId);
+    if (!parent) {
+      return res.status(400).json({ error: 'Categoría padre no encontrada' });
+    }
+    if (parent.parentId) {
+      return res.status(400).json({ error: 'No se pueden crear subcategorías de una subcategoría' });
+    }
+  }
+
   const existing = db.findAll('categories', userId);
   const maxOrden = existing.reduce((max, c) => Math.max(max, c.orden || 0), 0);
 
@@ -29,7 +39,8 @@ router.post('/', (req, res) => {
     userId,
     nombre: nombre.trim(),
     color: color || null,
-    orden: orden !== undefined ? orden : maxOrden + 1
+    orden: orden !== undefined ? orden : maxOrden + 1,
+    parentId: parentId || null
   }, userId);
 
   res.status(201).json(category);
@@ -39,17 +50,33 @@ router.put('/:id', (req, res) => {
   const db = req.app.locals.db;
   const userId = req.session.userId;
   const { id } = req.params;
-  const { nombre, color, orden } = req.body;
+  const { nombre, color, orden, parentId } = req.body;
 
   const category = db.findById('categories', id, userId);
   if (!category) {
     return res.status(404).json({ error: 'Categoría no encontrada' });
   }
 
+  if (parentId !== undefined) {
+    if (parentId === id) {
+      return res.status(400).json({ error: 'Una categoría no puede ser padre de sí misma' });
+    }
+    if (parentId) {
+      const parent = db.findById('categories', parentId, userId);
+      if (!parent) {
+        return res.status(400).json({ error: 'Categoría padre no encontrada' });
+      }
+      if (parent.parentId) {
+        return res.status(400).json({ error: 'No se pueden crear subcategorías de una subcategoría' });
+      }
+    }
+  }
+
   const updates = {};
   if (nombre !== undefined) updates.nombre = nombre.trim();
   if (color !== undefined) updates.color = color;
   if (orden !== undefined) updates.orden = orden;
+  if (parentId !== undefined) updates.parentId = parentId || null;
 
   const updated = db.update('categories', id, updates, userId);
   res.json(updated);

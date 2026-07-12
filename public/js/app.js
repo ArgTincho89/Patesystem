@@ -24,13 +24,17 @@ const App = {
       if (!this.user) return Router.navigate('/login');
       SummaryPage.render(params);
     });
-    Router.register('/trends', (params) => {
+    Router.register('/estadisticas', (params) => {
       if (!this.user) return Router.navigate('/login');
-      TrendsPage.render(params);
+      EstadisticasPage.render(params);
     });
     Router.register('/categories', () => {
       if (!this.user) return Router.navigate('/login');
       CategoriesPage.render();
+    });
+    Router.register('/profile', () => {
+      if (!this.user) return Router.navigate('/login');
+      ProfilePage.render();
     });
     Router.register('/reset-password', (params) => LoginPage.renderReset(params));
 
@@ -73,11 +77,18 @@ const App = {
         </svg>
         <span>Categorías</span>
       </button>
-      <button class="navbar-item" data-route="/trends">
+      <button class="navbar-item" data-route="/estadisticas">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
         </svg>
-        <span>Tendencias</span>
+        <span>Estadísticas</span>
+      </button>
+      <button class="navbar-item" data-route="/profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>Perfil</span>
       </button>
     `;
 
