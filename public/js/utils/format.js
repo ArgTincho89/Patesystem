@@ -31,7 +31,8 @@ function formatFechaCorta(fechaStr) {
 function formatMonth(monthStr) {
   const [year, month] = monthStr.split('-');
   const date = new Date(parseInt(year), parseInt(month) - 1);
-  return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+  const raw = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
 function getCurrentMonth() {

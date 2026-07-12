@@ -65,7 +65,7 @@ router.get('/recurring-total', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin } = req.body;
+  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion } = req.body;
 
   if (!tipo || !['expense', 'income', 'refund'].includes(tipo)) {
     return res.status(400).json({ error: 'Tipo inválido. Debe ser: expense, income o refund' });
@@ -87,6 +87,10 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Frecuencia inválida. Debe ser: monthly, bimonthly, semiannual o annual' });
   }
 
+  if (clasificacion && !['fijo', 'variable'].includes(clasificacion)) {
+    return res.status(400).json({ error: 'Clasificación inválida. Debe ser: fijo o variable' });
+  }
+
   const db = req.app.locals.db;
   const userId = req.session.userId;
 
@@ -106,7 +110,8 @@ router.post('/', (req, res) => {
     fecha: fecha || new Date().toISOString().split('T')[0],
     recurrente: recurrente || false,
     frecuencia: recurrente ? (frecuencia || 'monthly') : null,
-    fechaFin: recurrente ? (fechaFin || null) : null
+    fechaFin: recurrente ? (fechaFin || null) : null,
+    clasificacion: clasificacion || 'variable'
   }, userId);
 
   res.status(201).json(transaction);
@@ -116,7 +121,7 @@ router.put('/:id', (req, res) => {
   const db = req.app.locals.db;
   const userId = req.session.userId;
   const { id } = req.params;
-  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin } = req.body;
+  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion } = req.body;
 
   const transaction = db.findById('transactions', id, userId);
   if (!transaction) {
@@ -148,6 +153,12 @@ router.put('/:id', (req, res) => {
   }
   if (recurrente !== false && fechaFin !== undefined) {
     updates.fechaFin = fechaFin || null;
+  }
+  if (clasificacion !== undefined) {
+    if (!['fijo', 'variable'].includes(clasificacion)) {
+      return res.status(400).json({ error: 'Clasificación inválida' });
+    }
+    updates.clasificacion = clasificacion;
   }
 
   const finalTipo = updates.tipo || transaction.tipo;

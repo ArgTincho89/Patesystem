@@ -1,8 +1,9 @@
 const TransactionForm = {
-  async show(onSave) {
+  async show(onSave, transaction = null) {
     const categories = await API.categories.list();
-    let selectedType = 'expense';
-    let selectedCategoryId = categories.length > 0 ? categories[0].id : null;
+    const isEdit = !!transaction;
+    let selectedType = transaction?.tipo || 'expense';
+    let selectedCategoryId = transaction?.categoryId || (categories.length > 0 ? categories[0].id : null);
 
     const form = create('div');
 
@@ -60,7 +61,8 @@ const TransactionForm = {
     const titleInput = create('input', {
       className: 'form-control',
       type: 'text',
-      placeholder: 'Ej: Supermercado, Salary...'
+      placeholder: 'Ej: Supermercado, Salary...',
+      value: transaction?.titulo || ''
     });
     titleGroup.appendChild(titleInput);
     form.appendChild(titleGroup);
@@ -72,7 +74,8 @@ const TransactionForm = {
       type: 'number',
       step: '0.01',
       min: '0.01',
-      placeholder: '0.00'
+      placeholder: '0.00',
+      value: transaction?.monto || ''
     });
     amountGroup.appendChild(amountInput);
     form.appendChild(amountGroup);
@@ -82,10 +85,19 @@ const TransactionForm = {
     const dateInput = create('input', {
       className: 'form-control',
       type: 'date',
-      value: getToday()
+      value: transaction?.fecha || getToday()
     });
     dateGroup.appendChild(dateInput);
     form.appendChild(dateGroup);
+
+    const clasifGroup = create('div', { className: 'form-group' });
+    clasifGroup.appendChild(create('label', { textContent: 'Clasificación' }));
+    const clasifSelect = create('select', { className: 'form-control' });
+    clasifSelect.appendChild(create('option', { value: 'variable', textContent: 'Variable' }));
+    clasifSelect.appendChild(create('option', { value: 'fijo', textContent: 'Fijo' }));
+    clasifSelect.value = transaction?.clasificacion || 'variable';
+    clasifGroup.appendChild(clasifSelect);
+    form.appendChild(clasifGroup);
 
     const recurringGroup = create('div', { className: 'form-group recurring-section' });
     const recurringLabel = create('label', { className: 'checkbox-label' });
@@ -131,7 +143,19 @@ const TransactionForm = {
     recurringGroup.appendChild(freqGroup);
     form.appendChild(recurringGroup);
 
-    let recurringEnabled = false;
+    let recurringEnabled = transaction?.recurrente || false;
+    if (recurringEnabled) {
+      recurringCheckbox.checked = true;
+      freqGroup.style.display = 'block';
+      if (transaction?.frecuencia) freqSelect.value = transaction.frecuencia;
+      if (transaction?.fechaFin) {
+        endDateInput.value = transaction.fechaFin;
+      } else {
+        indeterminadoCheckbox.checked = true;
+        endDateInput.disabled = true;
+        endDateInput.style.opacity = '0.4';
+      }
+    }
     on(recurringCheckbox, 'change', () => {
       recurringEnabled = recurringCheckbox.checked;
       freqGroup.style.display = recurringEnabled ? 'block' : 'none';
@@ -157,7 +181,8 @@ const TransactionForm = {
         tipo: selectedType,
         titulo: titleInput.value.trim(),
         monto: parseFloat(amountInput.value),
-        fecha: dateInput.value
+        fecha: dateInput.value,
+        clasificacion: clasifSelect.value
       };
 
       if (selectedType !== 'income') {
@@ -176,9 +201,13 @@ const TransactionForm = {
       if (!data.monto || data.monto <= 0) return showToast('El monto debe ser positivo', 'error');
 
       try {
-        await API.transactions.create(data);
+        if (isEdit) {
+          await API.transactions.update(transaction.id, data);
+        } else {
+          await API.transactions.create(data);
+        }
         Modal.hide();
-        showToast('Transacción guardada');
+        showToast(isEdit ? 'Transacción actualizada' : 'Transacción guardada');
         if (onSave) onSave();
       } catch (err) {
         showToast(err.message, 'error');
@@ -188,7 +217,7 @@ const TransactionForm = {
     footer.appendChild(cancelBtn);
     footer.appendChild(saveBtn);
 
-    Modal.show('Nueva transacción', form, { footer });
+    Modal.show(isEdit ? 'Editar transacción' : 'Nueva transacción', form, { footer });
     titleInput.focus();
   }
 };

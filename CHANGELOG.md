@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.4.0] - 2026-07-12
+
+### Added
+- Editar transacciones: click en una transacción abre modal con opciones Editar/Eliminar, el formulario se pre-llena con los datos actuales
+- Campo "Clasificación" (Fijo/Variable) en el formulario de transacciones, con valor por defecto "Variable"
+- Gráfico pie "Fijo vs Variable" en la página Resumen, mostrando la distribución de gastos fijos y variables
+- Navegación a meses futuros en Resumen para prever gastos recurrentes
+
+### Changed
+- Nombres de meses ahora inician con mayúscula en todos los selectores (Inicio, Resumen, Estadísticas)
+- Selector de mes más grande y con mayor peso de fuente (`clamp(1rem, 5vw, var(--font-xl))`)
+- Modal de opciones de transacción ahora incluye botón "Editar" además de "Eliminar"
+
+### Fixed
+- El modal de transacción ahora muestra la clasificación (Fijo/Variable) en los detalles
+
 ## [1.3.0] - 2026-07-12
 
 ### Fixed

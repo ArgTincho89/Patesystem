@@ -21,6 +21,8 @@ router.get('/', (req, res) => {
   let totalIngresos = 0;
   let totalGastos = 0;
   let totalReembolsos = 0;
+  let totalFijos = 0;
+  let totalVariables = 0;
 
   const porCategoria = {};
 
@@ -45,6 +47,11 @@ router.get('/', (req, res) => {
       totalIngresos += t.monto;
     } else if (t.tipo === 'expense') {
       totalGastos += t.monto;
+      if (t.clasificacion === 'fijo') {
+        totalFijos += t.monto;
+      } else {
+        totalVariables += t.monto;
+      }
       if (porCategoria[t.categoryId]) {
         porCategoria[t.categoryId].gastos += t.monto;
       }
@@ -92,6 +99,8 @@ router.get('/', (req, res) => {
     reembolsos: Math.round(totalReembolsos * 100) / 100,
     gastosNetos: Math.round(gastosNetos * 100) / 100,
     ahorro: Math.round(ahorro * 100) / 100,
+    fijos: Math.round(totalFijos * 100) / 100,
+    variables: Math.round(totalVariables * 100) / 100,
     porCategoria: parentsWithChildren
   });
 });

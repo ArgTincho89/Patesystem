@@ -221,6 +221,14 @@ const HomePage = {
       onClick: () => Modal.hide()
     }));
     footer.appendChild(create('button', {
+      className: 'btn btn-primary',
+      textContent: 'Editar',
+      onClick: () => {
+        Modal.hide();
+        TransactionForm.show(() => this.render({ month: this.currentMonth }), tx);
+      }
+    }));
+    footer.appendChild(create('button', {
       className: 'btn btn-danger',
       textContent: 'Eliminar'
     }));
@@ -237,9 +245,11 @@ const HomePage = {
     });
 
     const catName = tx.tipo === 'income' ? 'Ingreso' : (tx.tipo === 'refund' ? 'Reembolso' : (catMap[tx.categoryId]?.nombre || ''));
+    const clasifLabel = tx.clasificacion === 'fijo' ? 'Fijo' : 'Variable';
+    const clasifBadge = tx.tipo === 'expense' ? ` <span style="font-size:var(--font-xs);padding:2px 6px;border-radius:10px;background:var(--bg-hover);color:var(--text-muted);">${clasifLabel}</span>` : '';
     Modal.show('Transacción', `
       <p><strong>${tx.titulo}</strong></p>
-      <p style="color:var(--text-secondary); margin: 8px 0;">${catName} - ${formatFechaCorta(tx.fecha)}</p>
+      <p style="color:var(--text-secondary); margin: 8px 0;">${catName}${clasifBadge} - ${formatFechaCorta(tx.fecha)}</p>
       <p style="font-size:var(--font-xl); font-weight:700; color: var(--${tx.tipo === 'expense' ? 'expense' : tx.tipo === 'income' ? 'income' : 'refund'}-color);">
         ${tx.tipo === 'expense' ? '-' : '+'}${formatearEuro(tx.monto)}
       </p>

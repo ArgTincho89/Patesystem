@@ -168,8 +168,8 @@
 }
 
 .month-nav h2 {
-  font-size: var(--font-lg);
-  font-weight: 600;
+  font-size: clamp(1rem, 5vw, var(--font-xl));
+  font-weight: 700;
 }
 
 .month-nav button {

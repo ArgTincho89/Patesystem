@@ -24,7 +24,7 @@ const SummaryPage = {
     const monthNav = createMonthSelector(this.currentMonth, (newMonth) => {
       this.currentMonth = newMonth;
       Router.navigate(`/summary?month=${newMonth}`);
-    });
+    }, { allowFuture: true });
     content.appendChild(monthNav);
 
     const statsRow = create('div', { className: 'stats-row' });
@@ -111,6 +111,33 @@ const SummaryPage = {
     }
 
     content.appendChild(catSection);
+
+    if (summary.fijos > 0 || summary.variables > 0) {
+      const fvCard = create('div', { className: 'chart-container' });
+      fvCard.appendChild(create('div', { className: 'chart-title', textContent: 'Fijo vs Variable' }));
+
+      const fvWrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
+      const fvCanvas = create('canvas', { className: 'chart-canvas' });
+      fvWrapper.appendChild(fvCanvas);
+      fvCard.appendChild(fvWrapper);
+
+      const fvLegend = create('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '16px', justifyContent: 'center' } });
+      if (summary.fijos > 0) {
+        fvLegend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:#FF6B6B"></span>Fijo: ${formatearEuro(summary.fijos)}` }));
+      }
+      if (summary.variables > 0) {
+        fvLegend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:#4ECDC4"></span>Variable: ${formatearEuro(summary.variables)}` }));
+      }
+      fvCard.appendChild(fvLegend);
+      content.appendChild(fvCard);
+
+      const fvSegments = [];
+      if (summary.fijos > 0) fvSegments.push({ value: summary.fijos, color: '#FF6B6B', label: 'Fijo' });
+      if (summary.variables > 0) fvSegments.push({ value: summary.variables, color: '#4ECDC4', label: 'Variable' });
+      requestAnimationFrame(() => {
+        Charts.drawDonut(fvCanvas, fvSegments, 200);
+      });
+    }
   },
 
   createStat(label, value, color) {
