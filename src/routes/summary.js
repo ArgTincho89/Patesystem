@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { getMonthTransactions } = require('../utils/recurring');
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.get('/', (req, res) => {
   }
 
   const transactions = db.findAll('transactions', userId);
-  const monthTransactions = transactions.filter(t => t.fecha && t.fecha.startsWith(month));
+  const monthTransactions = getMonthTransactions(transactions, month);
 
   let totalIngresos = 0;
   let totalGastos = 0;

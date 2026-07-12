@@ -1,5 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const { getMonthTransactions } = require('../utils/recurring');
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.get('/', (req, res) => {
   }
 
   const monthlyData = months.map(month => {
-    const monthTx = transactions.filter(t => t.fecha && t.fecha.startsWith(month));
+    const monthTx = getMonthTransactions(transactions, month);
 
     let ingresos = 0;
     let gastos = 0;

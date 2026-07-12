@@ -78,9 +78,9 @@ const EstadisticasPage = {
       monthCard.appendChild(legend);
       content.appendChild(monthCard);
 
-      const barLabels = ['Gastos', 'Ingresos', 'Reembolsos', 'Ahorro'];
-      const barData = [summary.gastosNetos, summary.ingresos, summary.reembolsos, summary.ahorro];
-      const barColors = ['#FF6B6B', '#4ECDC4', '#FFE66D', summary.ahorro >= 0 ? '#4ECDC4' : '#FF6B6B'];
+      const barLabels = ['Gastos', 'Ingresos', 'Reembolsos'];
+      const barData = [summary.gastosNetos, summary.ingresos, summary.reembolsos];
+      const barColors = ['#FF6B6B', '#4ECDC4', '#FFE66D'];
 
       requestAnimationFrame(() => {
         Charts.drawBarChart(monthCanvas, barData.map((v, i) => ({
@@ -89,6 +89,15 @@ const EstadisticasPage = {
           label: barLabels[i]
         })), { height: 180 });
       });
+
+      const ahorroColor = summary.ahorro >= 0 ? 'var(--success)' : 'var(--danger)';
+      const ahorroSign = summary.ahorro >= 0 ? '+' : '';
+      const ahorroStat = create('div', {
+        className: 'category-badge',
+        style: { justifyContent: 'center', marginTop: '12px', fontSize: 'var(--font-md)', fontWeight: '700', color: ahorroColor }
+      });
+      ahorroStat.innerHTML = `Ahorro: ${ahorroSign}${formatearEuro(summary.ahorro)}`;
+      monthCard.appendChild(ahorroStat);
 
       if (summary.porCategoria.length > 0) {
         const catCard = create('div', { className: 'chart-container' });

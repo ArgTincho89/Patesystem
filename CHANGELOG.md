@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.0] - 2026-07-12
+
+### Fixed
+- Transacciones recurrentes NO impactaban en el resumen mensual (Home stat cards)
+- Transacciones recurrentes NO impactaban en Estadísticas (resumen del mes y tendencias)
+- Causa raíz: summary.js y trends.js solo filtraban por `fecha.startsWith(month)`, ignorando instancias recurrentes generadas on-the-fly
+
+### Changed
+- `generateRecurringInstances` extraído a `src/utils/recurring.js` compartido entre transactions, summary y trends
+- Nueva función `getMonthTransactions()` centraliza la obtención de transacciones del mes (incluye recurrentes)
+- Gráfico de barras en Estadísticas ya no incluye "Ahorro" — se muestra como dato separado debajo del gráfico
+
 ## [1.2.0] - 2026-07-12
 
 ### Added
