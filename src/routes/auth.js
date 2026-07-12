@@ -1,7 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const { seedCategories } = require('../db/seed');
 const { sendPasswordResetEmail } = require('../services/email');
 
 const router = express.Router();
@@ -24,8 +23,12 @@ router.post('/register', async (req, res) => {
     }
 
     const db = req.app.locals.db;
-    const existing = db.findUserByEmail(email.toLowerCase());
-    if (existing) {
+
+    if (db.findUserByName(nombre)) {
+      return res.status(409).json({ error: 'Ya existe una cuenta con ese nombre de usuario' });
+    }
+
+    if (db.findUserByEmail(email.toLowerCase())) {
       return res.status(409).json({ error: 'Ya existe una cuenta con ese email' });
     }
 
@@ -35,8 +38,6 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       nombre
     });
-
-    seedCategories(db, user.id);
 
     req.session.userId = user.id;
 
@@ -53,14 +54,14 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { nombre, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email y contraseña son obligatorios' });
+    if (!nombre || !password) {
+      return res.status(400).json({ error: 'Nombre y contraseña son obligatorios' });
     }
 
     const db = req.app.locals.db;
-    const user = db.findUserByEmail(email.toLowerCase());
+    const user = db.findUserByName(nombre);
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }

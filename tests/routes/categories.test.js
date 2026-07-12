@@ -23,10 +23,10 @@ describe('Categories Routes', () => {
   });
 
   describe('GET /api/categories', () => {
-    it('should return seeded default categories', async () => {
+    it('should return empty array initially', async () => {
       const res = await agent.get('/api/categories');
       expect(res.status).toBe(200);
-      expect(res.body.length).toBeGreaterThan(0);
+      expect(res.body).toEqual([]);
     });
 
     it('should return categories after creation', async () => {

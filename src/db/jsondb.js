@@ -129,6 +129,11 @@ class JsonDB {
     return users.find(u => u.email === email) || null;
   }
 
+  findUserByName(nombre) {
+    const users = this._readCollection('users');
+    return users.find(u => u.nombre === nombre) || null;
+  }
+
   findUserById(id) {
     const users = this._readCollection('users');
     return users.find(u => u.id === id) || null;

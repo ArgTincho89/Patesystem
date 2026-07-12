@@ -18,8 +18,8 @@ const LoginPage = {
           </div>
           <form class="login-form active" id="login-form">
             <div class="form-group">
-              <label>Email</label>
-              <input type="email" class="form-control" id="login-email" required>
+              <label>Nombre de usuario</label>
+              <input type="text" class="form-control" id="login-nombre" required>
             </div>
             <div class="form-group">
               <label>Contraseña</label>
@@ -62,7 +62,7 @@ const LoginPage = {
       e.preventDefault();
       try {
         App.user = await API.auth.login({
-          email: $('#login-email').value,
+          nombre: $('#login-nombre').value,
           password: $('#login-password').value
         });
         navbar.style.display = '';
