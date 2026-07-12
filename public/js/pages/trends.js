@@ -9,6 +9,8 @@ const EstadisticasPage = {
     navbar.style.display = '';
     content.style.paddingBottom = '';
 
+    const savedScroll = params?._keepScroll ? window.scrollY : 0;
+
     this.currentMonth = params?.month || getCurrentMonth();
     if (params?.category) this.selectedCategory = params.category;
     if (params?.period) this.period = params.period;
@@ -23,6 +25,10 @@ const EstadisticasPage = {
       ]);
 
       this.renderContent(content, summary, trends, categories);
+
+      if (savedScroll) {
+        requestAnimationFrame(() => window.scrollTo(0, savedScroll));
+      }
     } catch (err) {
       content.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`;
     }
@@ -50,7 +56,7 @@ const EstadisticasPage = {
 
     const monthNav = createMonthSelector(this.currentMonth, (newMonth) => {
       this.currentMonth = newMonth;
-      this.render({ month: newMonth, period: this.period, category: this.selectedCategory });
+      this.render({ month: newMonth, period: this.period, category: this.selectedCategory, _keepScroll: true });
     });
     content.appendChild(monthNav);
 
@@ -150,7 +156,7 @@ const EstadisticasPage = {
       });
       on(btn, 'click', () => {
         this.period = p.value;
-        this.render({ month: this.currentMonth, period: this.period, category: this.selectedCategory });
+        this.render({ month: this.currentMonth, period: this.period, category: this.selectedCategory, _keepScroll: true });
       });
       periodSelector.appendChild(btn);
     });
@@ -163,7 +169,7 @@ const EstadisticasPage = {
     });
     on(allBtn, 'click', () => {
       this.selectedCategory = null;
-      this.render({ month: this.currentMonth, period: this.period, category: null });
+      this.render({ month: this.currentMonth, period: this.period, category: null, _keepScroll: true });
     });
     filterContainer.appendChild(allBtn);
 
@@ -174,7 +180,7 @@ const EstadisticasPage = {
       });
       on(btn, 'click', () => {
         this.selectedCategory = cat.id;
-        this.render({ month: this.currentMonth, period: this.period, category: cat.id });
+        this.render({ month: this.currentMonth, period: this.period, category: cat.id, _keepScroll: true });
       });
       filterContainer.appendChild(btn);
     });

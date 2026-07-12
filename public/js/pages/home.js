@@ -102,42 +102,6 @@ const HomePage = {
       content.appendChild(fixedSection);
     }
 
-    if (summary.porCategoria.length > 0) {
-      const catSection = create('div', { className: 'summary-section' });
-      catSection.appendChild(create('h3', { textContent: 'Por categoría', style: { marginBottom: '16px' } }));
-
-      const maxNeto = Math.max(...summary.porCategoria.map(c => c.neto || 0), 1);
-
-      const renderCatBar = (cat, depth) => {
-        const neto = cat.neto || 0;
-        if (neto <= 0 && (!cat.children || cat.children.length === 0)) return;
-
-        const bar = create('div', { className: 'category-bar' });
-        if (depth > 0) bar.classList.add('category-bar-child');
-        bar.style.paddingLeft = `${depth * 16}px`;
-
-        const pct = Math.max((neto / maxNeto) * 100, 0);
-        bar.innerHTML = `
-          <div class="category-bar-header">
-            <span class="category-bar-name">
-              <span class="category-dot" style="background:${cat.color || '#6c6c7c'}; display:inline-block;"></span>
-              ${cat.nombre}
-            </span>
-            <span class="category-bar-amount">${formatearEuro(neto)}</span>
-          </div>
-          <div class="category-bar-track">
-            <div class="category-bar-fill" style="width:${pct}%; background:${cat.color || '#6c6c7c'};"></div>
-          </div>
-        `;
-        catSection.appendChild(bar);
-
-        (cat.children || []).forEach(child => renderCatBar(child, depth + 1));
-      };
-
-      summary.porCategoria.forEach(cat => renderCatBar(cat, 0));
-      content.appendChild(catSection);
-    }
-
     if (transactions.length > 0 || this.hasActiveFilters()) {
       const txSection = create('div');
 

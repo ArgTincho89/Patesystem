@@ -22,7 +22,7 @@ const ProfilePage = {
     content.appendChild(header);
 
     const avatarSection = create('div', { className: 'profile-section' });
-    const savedAvatar = localStorage.getItem('pate_avatar');
+    const savedAvatar = user.photo;
     const avatarDisplay = create('div', { className: 'profile-avatar' });
     if (savedAvatar) {
       avatarDisplay.innerHTML = `<img src="${savedAvatar}" alt="Avatar" class="avatar-img">`;
@@ -47,7 +47,7 @@ const ProfilePage = {
         const reader = new FileReader();
         reader.onload = (ev) => {
           const img = new Image();
-          img.onload = () => {
+          img.onload = async () => {
             const canvas = create('canvas');
             const size = 200;
             canvas.width = size;
@@ -58,9 +58,13 @@ const ProfilePage = {
             const sy = (img.height - min) / 2;
             ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
             const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            localStorage.setItem('pate_avatar', dataUrl);
-            this.render();
-            showToast('Foto actualizada');
+            try {
+              await API.auth.uploadPhoto(dataUrl);
+              this.render();
+              showToast('Foto actualizada');
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
           };
           img.src = ev.target.result;
         };
@@ -76,10 +80,14 @@ const ProfilePage = {
         textContent: 'Eliminar foto',
         style: { color: 'var(--danger)' }
       });
-      on(removeAvatarBtn, 'click', () => {
-        localStorage.removeItem('pate_avatar');
-        this.render();
-        showToast('Foto eliminada');
+      on(removeAvatarBtn, 'click', async () => {
+        try {
+          await API.auth.deletePhoto();
+          this.render();
+          showToast('Foto eliminada');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
       });
       avatarSection.appendChild(removeAvatarBtn);
     }

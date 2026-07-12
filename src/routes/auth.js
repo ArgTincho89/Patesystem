@@ -44,7 +44,8 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       id: user.id,
       email: user.email,
-      nombre: user.nombre
+      nombre: user.nombre,
+      photo: user.photo || null
     });
   } catch (err) {
     console.error('[REGISTER]', err);
@@ -76,7 +77,8 @@ router.post('/login', async (req, res) => {
     res.json({
       id: user.id,
       email: user.email,
-      nombre: user.nombre
+      nombre: user.nombre,
+      photo: user.photo || null
     });
   } catch (err) {
     console.error('[LOGIN]', err);
@@ -108,7 +110,8 @@ router.get('/me', (req, res) => {
   res.json({
     id: user.id,
     email: user.email,
-    nombre: user.nombre
+    nombre: user.nombre,
+    photo: user.photo || null
   });
 });
 
@@ -254,6 +257,51 @@ router.post('/change-email', async (req, res) => {
     console.error('[CHANGE-EMAIL]', err);
     res.status(500).json({ error: 'Error al cambiar email' });
   }
+});
+
+router.put('/photo', (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+
+  const { photo } = req.body;
+  if (!photo || typeof photo !== 'string') {
+    return res.status(400).json({ error: 'Foto requerida (base64 data URL)' });
+  }
+
+  if (!photo.startsWith('data:image/')) {
+    return res.status(400).json({ error: 'Formato de imagen inválido' });
+  }
+
+  if (photo.length > 500000) {
+    return res.status(400).json({ error: 'La imagen no puede superar 500KB' });
+  }
+
+  const db = req.app.locals.db;
+  const user = db.findUserById(req.session.userId);
+  if (!user) {
+    return res.status(401).json({ error: 'Usuario no encontrado' });
+  }
+
+  db.updateUser(user.id, { photo });
+
+  res.json({ ok: true, photo });
+});
+
+router.delete('/photo', (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+
+  const db = req.app.locals.db;
+  const user = db.findUserById(req.session.userId);
+  if (!user) {
+    return res.status(401).json({ error: 'Usuario no encontrado' });
+  }
+
+  db.updateUser(user.id, { photo: null });
+
+  res.json({ ok: true });
 });
 
 module.exports = router;

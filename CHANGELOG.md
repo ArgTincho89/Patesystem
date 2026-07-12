@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.1] - 2026-07-12
+
+### Added
+- Foto de perfil guardada en el servidor (persiste entre sesiones, browsers y dispositivos)
+- Endpoints `PUT /api/auth/photo` y `DELETE /api/auth/photo` para gestión de foto
+- Campo `photo` en respuestas de login, registro y perfil
+- Paso de tests en GitHub Actions antes del deploy (CI gate)
+
+### Fixed
+- Scroll en Estadísticas: al cambiar período (3m/6m/12m) o categoría en Tendencias, la página mantiene la posición del scroll
+- Foto de perfil ahora persiste entre sesiones (antes se almacenaba en localStorage y se perdía al limpiar caché)
+
+### Removed
+- Sección "Por categoría" de la pantalla Inicio (ya existe en Estadísticas y Resumen)
+
 ## [1.5.0] - 2026-07-12
 
 ### Added

@@ -28,7 +28,9 @@ const API = {
     login(data) { return API.post('/auth/login', data); },
     logout() { return API.post('/auth/logout'); },
     forgotPassword(email) { return API.post('/auth/forgot-password', { email }); },
-    resetPassword(token, newPassword) { return API.post('/auth/reset-password', { token, newPassword }); }
+    resetPassword(token, newPassword) { return API.post('/auth/reset-password', { token, newPassword }); },
+    uploadPhoto(photo) { return API.put('/auth/photo', { photo }); },
+    deletePhoto() { return API.delete('/auth/photo'); }
   },
 
   categories: {
