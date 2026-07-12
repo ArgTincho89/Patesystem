@@ -1,0 +1,77 @@
+const express = require('express');
+const { requireAuth } = require('../middleware/auth');
+
+const router = express.Router();
+
+router.use(requireAuth);
+
+router.get('/', (req, res) => {
+  const db = req.app.locals.db;
+  const userId = req.session.userId;
+  const { month } = req.query;
+
+  if (!month || !/^\d{4}-\d{2}$/.test(month)) {
+    return res.status(400).json({ error: 'Parámetro month requerido (formato YYYY-MM)' });
+  }
+
+  const transactions = db.findAll('transactions', userId);
+  const monthTransactions = transactions.filter(t => t.fecha && t.fecha.startsWith(month));
+
+  let totalIngresos = 0;
+  let totalGastos = 0;
+  let totalReembolsos = 0;
+
+  const porCategoria = {};
+
+  const categories = db.findAll('categories', userId);
+
+  categories.forEach(cat => {
+    porCategoria[cat.id] = {
+      categoryId: cat.id,
+      nombre: cat.nombre,
+      color: cat.color,
+      gastos: 0,
+      reembolsos: 0,
+      neto: 0
+    };
+  });
+
+  monthTransactions.forEach(t => {
+    if (t.tipo === 'income') {
+      totalIngresos += t.monto;
+    } else if (t.tipo === 'expense') {
+      totalGastos += t.monto;
+      if (porCategoria[t.categoryId]) {
+        porCategoria[t.categoryId].gastos += t.monto;
+      }
+    } else if (t.tipo === 'refund') {
+      totalReembolsos += t.monto;
+      if (porCategoria[t.categoryId]) {
+        porCategoria[t.categoryId].reembolsos += t.monto;
+      }
+    }
+  });
+
+  const gastosNetos = totalGastos - totalReembolsos;
+  const ahorro = totalIngresos - gastosNetos;
+
+  Object.values(porCategoria).forEach(cat => {
+    cat.neto = Math.round((cat.gastos - cat.reembolsos) * 100) / 100;
+  });
+
+  const categoriasOrdenadas = Object.values(porCategoria)
+    .filter(cat => cat.gastos > 0 || cat.reembolsos > 0)
+    .sort((a, b) => b.neto - a.neto);
+
+  res.json({
+    month,
+    ingresos: Math.round(totalIngresos * 100) / 100,
+    gastos: Math.round(totalGastos * 100) / 100,
+    reembolsos: Math.round(totalReembolsos * 100) / 100,
+    gastosNetos: Math.round(gastosNetos * 100) / 100,
+    ahorro: Math.round(ahorro * 100) / 100,
+    porCategoria: categoriasOrdenadas
+  });
+});
+
+module.exports = router;
