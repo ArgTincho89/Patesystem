@@ -202,7 +202,7 @@ const TransactionForm = {
 
       try {
         if (isEdit) {
-          await API.transactions.update(transaction.id, data);
+          await API.transactions.update(transaction.originalId || transaction.id, data);
         } else {
           await API.transactions.create(data);
         }
