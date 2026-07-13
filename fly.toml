@@ -6,6 +6,8 @@ primary_region = "iad"
 [env]
   PORT = "3000"
   NODE_ENV = "production"
+  APP_URL = "https://patesystem.fly.dev"
+  SESSION_SECRET = "f71506b9f8a73d7eceb87cfa88a3767fae7a5c44bf5755da14ac497aa19407dd"
 
 [http_service]
   internal_port = 3000
@@ -18,6 +20,12 @@ primary_region = "iad"
     type = "connections"
     hard_limit = 250
     soft_limit = 200
+
+  [[http_service.checks]]
+    interval = "10s"
+    timeout = "5s"
+    method = "GET"
+    path = "/health"
 
 [[vm]]
   memory = "1gb"

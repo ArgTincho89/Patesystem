@@ -44,6 +44,8 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/summary', summaryRoutes);
 app.use('/api/trends', trendsRoutes);
 
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
+
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('*', (req, res) => {

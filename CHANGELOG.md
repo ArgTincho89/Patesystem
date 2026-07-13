@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.2] - 2026-07-13
+
+### Fixed
+- Fly.io deployment 502 error: added `/health` endpoint for Fly proxy health checks
+- Added `APP_URL` and `SESSION_SECRET` env vars to fly.toml for production CORS and session security
+
+### Changed
+- Service worker cache version bumped to v3
+
 ## [1.5.1] - 2026-07-12
 
 ### Added
