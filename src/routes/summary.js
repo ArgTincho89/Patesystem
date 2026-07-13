@@ -92,6 +92,15 @@ router.get('/', (req, res) => {
     }
   });
 
+  Object.keys(childMap).forEach(parentId => {
+    if (!parentsWithChildren.find(p => p.categoryId === parentId)) {
+      const parentData = porCategoria[parentId];
+      if (parentData) {
+        parentsWithChildren.push({ ...parentData, children: childMap[parentId] });
+      }
+    }
+  });
+
   res.json({
     month,
     ingresos: Math.round(totalIngresos * 100) / 100,

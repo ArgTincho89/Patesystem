@@ -13,6 +13,13 @@ const LoginPage = {
 
     const CHANGELOG = [
       {
+        v: '1.5.8', date: '13/07/2026',
+        items: [
+          'Fix: Gráficos ahora muestran TODOS los gastos incluyendo subcategorías',
+          'El total del gráfico ahora coincide con el total de la stat card'
+        ]
+      },
+      {
         v: '1.5.7', date: '13/07/2026',
         items: [
           'Fix: toggle de ojito (Ingresos/Ahorro) ya no recarga la página',

@@ -117,5 +117,36 @@ describe('Summary Routes', () => {
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.porCategoria)).toBe(true);
     });
+
+    it('should include children even when parent has no direct expenses', async () => {
+      const parentRes = await agent.post('/api/categories').send({ nombre: 'NoDirectParent' });
+      const child1Res = await agent.post('/api/categories').send({
+        nombre: 'ChildA', parentId: parentRes.body.id
+      });
+      const child2Res = await agent.post('/api/categories').send({
+        nombre: 'ChildB', parentId: parentRes.body.id
+      });
+
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 100, titulo: 'ChildA exp', categoryId: child1Res.body.id, fecha: '2024-08-10'
+      });
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 50, titulo: 'ChildB exp', categoryId: child2Res.body.id, fecha: '2024-08-11'
+      });
+
+      const res = await agent.get('/api/summary?month=2024-08');
+      expect(res.body.gastosNetos).toBe(150);
+
+      const allCats = [];
+      res.body.porCategoria.forEach(c => {
+        allCats.push(c);
+        (c.children || []).forEach(ch => allCats.push(ch));
+      });
+      const totalNeto = allCats.reduce((sum, c) => sum + c.neto, 0);
+      expect(totalNeto).toBe(150);
+
+      const childNames = allCats.filter(c => c.categoryId === child1Res.body.id || c.categoryId === child2Res.body.id);
+      expect(childNames.length).toBe(2);
+    });
   });
 });
