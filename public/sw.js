@@ -1,4 +1,4 @@
-const CACHE_NAME = 'patesystem-v1';
+const CACHE_NAME = 'patesystem-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -20,7 +20,10 @@ const STATIC_ASSETS = [
   '/js/pages/home.js',
   '/js/pages/summary.js',
   '/js/pages/trends.js',
+  '/js/pages/profile.js',
   '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
   '/version.json'
 ];
 
