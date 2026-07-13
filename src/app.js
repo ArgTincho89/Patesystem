@@ -15,6 +15,8 @@ const trendsRoutes = require('./routes/trends');
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 const db = new JsonDB(config.dataDir);
 app.locals.db = db;
 
