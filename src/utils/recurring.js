@@ -47,7 +47,7 @@ function getMonthTransactions(transactions, month) {
     if (tx.recurrente && tx.frecuencia) {
       const instances = generateRecurringInstances(tx, month);
       instances.forEach(inst => {
-        if (!result.find(f => f.id === inst.id)) {
+        if (!result.find(f => f.id === inst.id || f.id === inst.originalId)) {
           result.push(inst);
         }
       });
