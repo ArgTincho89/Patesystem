@@ -115,7 +115,7 @@ const EstadisticasPage = {
         catCard.appendChild(donutWrapper);
 
         const catLegend = create('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px', justifyContent: 'center' } });
-        summary.porCategoria.filter(c => !c.parentId && c.neto > 0).forEach(cat => {
+        summary.porCategoria.filter(c => c.neto > 0).forEach(cat => {
           catLegend.appendChild(create('div', {
             className: 'category-badge',
             innerHTML: `<span class="category-dot" style="background:${cat.color || '#6c6c7c'}"></span>${cat.nombre}: ${formatearEuro(cat.neto)}`
@@ -124,7 +124,7 @@ const EstadisticasPage = {
         catCard.appendChild(catLegend);
         content.appendChild(catCard);
 
-        const segments = summary.porCategoria.filter(c => !c.parentId && c.neto > 0).map(cat => ({
+        const segments = summary.porCategoria.filter(c => c.neto > 0).map(cat => ({
           value: cat.neto,
           color: cat.color || '#6c6c7c',
           label: cat.nombre

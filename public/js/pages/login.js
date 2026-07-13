@@ -13,6 +13,13 @@ const LoginPage = {
 
     const CHANGELOG = [
       {
+        v: '1.5.5', date: '13/07/2026',
+        items: [
+          'Fix: Distribución de gastos ahora muestra todas las categorías (incluye hijas)',
+          'Valores de Gastos/Ingresos/Ahorro aún más grandes'
+        ]
+      },
+      {
         v: '1.5.4', date: '13/07/2026',
         items: [
           'Valores de Gastos/Ingresos/Ahorro más grandes en móvil',
