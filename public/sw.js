@@ -1,4 +1,4 @@
-const CACHE_NAME = 'patesystem-v5';
+const CACHE_NAME = 'patesystem-v6';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

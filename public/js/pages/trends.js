@@ -9,14 +9,120 @@ const EstadisticasPage = {
     navbar.style.display = '';
     content.style.paddingBottom = '';
 
-    const savedScroll = params?._keepScroll ? window.scrollY : 0;
-
     this.currentMonth = params?.month || getCurrentMonth();
     if (params?.category) this.selectedCategory = params.category;
     if (params?.period) this.period = params.period;
 
-    content.innerHTML = '<div class="loading">Cargando...</div>';
+    const savedScroll = params?._keepScroll ? window.scrollY : 0;
 
+    if (!params?._keepScroll) {
+      content.innerHTML = '';
+      this.buildShell(content);
+    }
+
+    await this.refreshData(content, savedScroll);
+  },
+
+  buildShell(content) {
+    content.innerHTML = '';
+
+    const title = create('h2', {
+      textContent: 'Estadísticas',
+      style: { fontSize: 'var(--font-xl)', fontWeight: '700', marginBottom: '16px' }
+    });
+    content.appendChild(title);
+
+    this._monthNavContainer = create('div');
+    content.appendChild(this._monthNavContainer);
+
+    this._dataSection = create('div', { className: 'page-content-fade' });
+    content.appendChild(this._dataSection);
+
+    const trendDivider = create('div', { className: 'trend-divider', style: { margin: '24px 0 16px', borderTop: '1px solid var(--border)', paddingTop: '16px' } });
+    trendDivider.appendChild(create('h3', { textContent: 'Tendencias', style: { fontSize: 'var(--font-lg)', marginBottom: '12px' } }));
+    content.appendChild(trendDivider);
+
+    this._periodContainer = create('div');
+    content.appendChild(this._periodContainer);
+
+    this._filterContainer = create('div', { className: 'trend-filters' });
+    content.appendChild(this._filterContainer);
+
+    this._trendsSection = create('div', { className: 'page-content-fade' });
+    content.appendChild(this._trendsSection);
+
+    const monthNav = createMonthSelector(this.currentMonth, async (newMonth) => {
+      this.currentMonth = newMonth;
+      const monthLabel = this._monthNavContainer.querySelector('.month-nav h2');
+      if (monthLabel) monthLabel.textContent = formatMonth(newMonth);
+      this._dataSection.classList.remove('visible');
+      this._trendsSection.classList.remove('visible');
+      await this.refreshData($('#page-content'), window.scrollY);
+    }, { allowFuture: true });
+    this._monthNavContainer.appendChild(monthNav);
+
+    this.buildPeriodSelector();
+  },
+
+  buildPeriodSelector() {
+    this._periodContainer.innerHTML = '';
+    const periodSelector = create('div', { className: 'period-selector' });
+    [
+      { value: '3m', label: '3 meses' },
+      { value: '6m', label: '6 meses' },
+      { value: '12m', label: '12 meses' }
+    ].forEach(p => {
+      const btn = create('button', {
+        className: `period-btn ${this.period === p.value ? 'active' : ''}`,
+        textContent: p.label
+      });
+      on(btn, 'click', async () => {
+        if (this.period === p.value) return;
+        this.period = p.value;
+        this.buildPeriodSelector();
+        this._trendsSection.classList.remove('visible');
+        const scrollY = window.scrollY;
+        await this.refreshData($('#page-content'), scrollY);
+      });
+      periodSelector.appendChild(btn);
+    });
+    this._periodContainer.appendChild(periodSelector);
+  },
+
+  buildFilterButtons(categories) {
+    this._filterContainer.innerHTML = '';
+    const allBtn = create('button', {
+      className: `trend-filter-btn ${!this.selectedCategory ? 'active' : ''}`,
+      textContent: 'Todas'
+    });
+    on(allBtn, 'click', async () => {
+      if (!this.selectedCategory) return;
+      this.selectedCategory = null;
+      this.buildFilterButtons(categories);
+      this._trendsSection.classList.remove('visible');
+      const scrollY = window.scrollY;
+      await this.refreshData($('#page-content'), scrollY);
+    });
+    this._filterContainer.appendChild(allBtn);
+
+    categories.forEach(cat => {
+      const btn = create('button', {
+        className: `trend-filter-btn ${this.selectedCategory === cat.id ? 'active' : ''}`,
+        textContent: cat.nombre
+      });
+      on(btn, 'click', async () => {
+        if (this.selectedCategory === cat.id) return;
+        this.selectedCategory = cat.id;
+        this.buildFilterButtons(categories);
+        this._trendsSection.classList.remove('visible');
+        const scrollY = window.scrollY;
+        await this.refreshData($('#page-content'), scrollY);
+      });
+      this._filterContainer.appendChild(btn);
+    });
+  },
+
+  async refreshData(content, savedScroll) {
     try {
       const [summary, trends, categories] = await Promise.all([
         API.summary.get(this.currentMonth),
@@ -24,13 +130,14 @@ const EstadisticasPage = {
         API.categories.list()
       ]);
 
-      this.renderContent(content, summary, trends, categories);
+      this.buildFilterButtons(categories);
+      this.renderDataSection(summary, trends);
 
       if (savedScroll) {
         requestAnimationFrame(() => window.scrollTo(0, savedScroll));
       }
     } catch (err) {
-      content.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`;
+      this._dataSection.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`;
     }
   },
 
@@ -45,20 +152,8 @@ const EstadisticasPage = {
     return API.trends.get(fromMonth, getCurrentMonth(), this.selectedCategory);
   },
 
-  renderContent(content, summary, trends, categories) {
-    content.innerHTML = '';
-
-    const title = create('h2', {
-      textContent: 'Estadísticas',
-      style: { fontSize: 'var(--font-xl)', fontWeight: '700', marginBottom: '16px' }
-    });
-    content.appendChild(title);
-
-    const monthNav = createMonthSelector(this.currentMonth, (newMonth) => {
-      this.currentMonth = newMonth;
-      this.render({ month: newMonth, period: this.period, category: this.selectedCategory, _keepScroll: true });
-    });
-    content.appendChild(monthNav);
+  renderDataSection(summary, trends) {
+    this._dataSection.innerHTML = '';
 
     if (summary.porCategoria.length > 0 || summary.ingresos > 0) {
       const monthCard = create('div', { className: 'chart-container' });
@@ -82,7 +177,7 @@ const EstadisticasPage = {
       const savingsColor = summary.ahorro >= 0 ? 'var(--success)' : 'var(--danger)';
       legend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:${savingsColor}"></span>Ahorro: ${formatearEuro(summary.ahorro)}` }));
       monthCard.appendChild(legend);
-      content.appendChild(monthCard);
+      this._dataSection.appendChild(monthCard);
 
       const barLabels = ['Gastos', 'Ingresos', 'Reembolsos'];
       const barData = [summary.gastosNetos, summary.ingresos, summary.reembolsos];
@@ -128,7 +223,7 @@ const EstadisticasPage = {
           }));
         });
         catCard.appendChild(catLegend);
-        content.appendChild(catCard);
+        this._dataSection.appendChild(catCard);
 
         const segments = allCats.filter(c => c.neto > 0).map(cat => ({
           value: cat.neto,
@@ -140,57 +235,19 @@ const EstadisticasPage = {
         });
       }
     } else {
-      content.appendChild(create('div', {
+      this._dataSection.appendChild(create('div', {
         className: 'empty-state',
         innerHTML: '<div class="empty-state-icon">📊</div><p class="empty-state-text">No hay datos este mes</p>'
       }));
     }
 
-    const trendDivider = create('div', { className: 'trend-divider', style: { margin: '24px 0 16px', borderTop: '1px solid var(--border)', paddingTop: '16px' } });
-    trendDivider.appendChild(create('h3', { textContent: 'Tendencias', style: { fontSize: 'var(--font-lg)', marginBottom: '12px' } }));
-    content.appendChild(trendDivider);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this._dataSection.classList.add('visible');
+      });
+    });
 
-    const periodSelector = create('div', { className: 'period-selector' });
-    [
-      { value: '3m', label: '3 meses' },
-      { value: '6m', label: '6 meses' },
-      { value: '12m', label: '12 meses' }
-    ].forEach(p => {
-      const btn = create('button', {
-        className: `period-btn ${this.period === p.value ? 'active' : ''}`,
-        textContent: p.label
-      });
-      on(btn, 'click', () => {
-        this.period = p.value;
-        this.render({ month: this.currentMonth, period: this.period, category: this.selectedCategory, _keepScroll: true });
-      });
-      periodSelector.appendChild(btn);
-    });
-    content.appendChild(periodSelector);
-
-    const filterContainer = create('div', { className: 'trend-filters' });
-    const allBtn = create('button', {
-      className: `trend-filter-btn ${!this.selectedCategory ? 'active' : ''}`,
-      textContent: 'Todas'
-    });
-    on(allBtn, 'click', () => {
-      this.selectedCategory = null;
-      this.render({ month: this.currentMonth, period: this.period, category: null, _keepScroll: true });
-    });
-    filterContainer.appendChild(allBtn);
-
-    categories.forEach(cat => {
-      const btn = create('button', {
-        className: `trend-filter-btn ${this.selectedCategory === cat.id ? 'active' : ''}`,
-        textContent: cat.nombre
-      });
-      on(btn, 'click', () => {
-        this.selectedCategory = cat.id;
-        this.render({ month: this.currentMonth, period: this.period, category: cat.id, _keepScroll: true });
-      });
-      filterContainer.appendChild(btn);
-    });
-    content.appendChild(filterContainer);
+    this._trendsSection.innerHTML = '';
 
     if (trends.monthlyData.length > 0) {
       const ahorroCard = create('div', { className: 'chart-container' });
@@ -199,7 +256,7 @@ const EstadisticasPage = {
       const ahorroCanvas = create('canvas');
       ahorroWrapper.appendChild(ahorroCanvas);
       ahorroCard.appendChild(ahorroWrapper);
-      content.appendChild(ahorroCard);
+      this._trendsSection.appendChild(ahorroCard);
 
       const labels = trends.monthlyData.map(d => {
         const [y, m] = d.month.split('-');
@@ -242,17 +299,23 @@ const EstadisticasPage = {
         });
 
         catCard.appendChild(catLegend);
-        content.appendChild(catCard);
+        this._trendsSection.appendChild(catCard);
 
         requestAnimationFrame(() => {
           Charts.drawLineChart(catCanvas, datasets, labels, { height: 220 });
         });
       }
     } else {
-      content.appendChild(create('div', {
+      this._trendsSection.appendChild(create('div', {
         className: 'empty-state',
         innerHTML: '<div class="empty-state-icon">📈</div><p class="empty-state-text">No hay datos en este período</p>'
       }));
     }
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this._trendsSection.classList.add('visible');
+      });
+    });
   }
 };

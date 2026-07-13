@@ -224,6 +224,15 @@
   pointer-events: none;
 }
 
+.page-content-fade {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.page-content-fade.visible {
+  opacity: 1;
+}
+
 .summary-section {
   background: var(--bg-secondary);
   border-radius: var(--radius-lg);

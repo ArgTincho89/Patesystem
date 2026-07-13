@@ -13,6 +13,14 @@ const LoginPage = {
 
     const CHANGELOG = [
       {
+        v: '1.5.7', date: '13/07/2026',
+        items: [
+          'Fix: toggle de ojito (Ingresos/Ahorro) ya no recarga la página',
+          'Fix: botones de período y categoría en Estadísticas actualizan sin flash',
+          'Navegación de mes con transición suave'
+        ]
+      },
+      {
         v: '1.5.6', date: '13/07/2026',
         items: [
           'Fix: Montos en Home ya no se cortan (€ adaptable al contenedor)',

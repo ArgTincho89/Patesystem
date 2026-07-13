@@ -9,6 +9,12 @@ const HomePage = {
 
     this.currentMonth = params?.month || getCurrentMonth();
 
+    if (params?.month) {
+      content.classList.remove('visible');
+      await new Promise(r => setTimeout(r, 120));
+    }
+
+    content.classList.add('page-content-fade');
     content.innerHTML = '<div class="loading">Cargando...</div>';
 
     try {
@@ -19,8 +25,14 @@ const HomePage = {
       ]);
 
       this.renderContent(content, summary, transactions, categories);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          content.classList.add('visible');
+        });
+      });
     } catch (err) {
       content.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`;
+      content.classList.add('visible');
     }
   },
 
@@ -48,9 +60,11 @@ const HomePage = {
 
     const incomeCard = this.createStat('Ingresos', formatearEuro(summary.ingresos), 'var(--income-color)');
     const savingsCard = this.createStat('Ahorro', `${savingsSign}${formatearEuro(summary.ahorro)}`, savingsColor);
+    const incomeVal = incomeCard.querySelector('.stat-value');
+    const savingsVal = savingsCard.querySelector('.stat-value');
     if (incomeHidden) {
-      incomeCard.querySelector('.stat-value').classList.add('income-blurred');
-      savingsCard.querySelector('.stat-value').classList.add('income-blurred');
+      incomeVal.classList.add('income-blurred');
+      savingsVal.classList.add('income-blurred');
     }
     statsRow.appendChild(incomeCard);
 
@@ -58,18 +72,22 @@ const HomePage = {
 
     header.appendChild(statsRow);
 
+    const SVG_EYE_OPEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const SVG_EYE_CLOSED = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
     const eyeRow = create('div', { className: 'eye-toggle-row' });
     const eyeBtn = create('button', {
       className: 'eye-toggle-btn',
-      innerHTML: incomeHidden
-        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
-        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+      innerHTML: incomeHidden ? SVG_EYE_CLOSED : SVG_EYE_OPEN,
       title: incomeHidden ? 'Mostrar ingresos' : 'Ocultar ingresos'
     });
     on(eyeBtn, 'click', () => {
       const nowHidden = localStorage.getItem('pate_hide_income') !== 'true';
       localStorage.setItem('pate_hide_income', nowHidden);
-      this.render({ month: this.currentMonth });
+      incomeVal.classList.toggle('income-blurred', nowHidden);
+      savingsVal.classList.toggle('income-blurred', nowHidden);
+      eyeBtn.innerHTML = nowHidden ? SVG_EYE_CLOSED : SVG_EYE_OPEN;
+      eyeBtn.title = nowHidden ? 'Mostrar ingresos' : 'Ocultar ingresos';
     });
     eyeRow.appendChild(eyeBtn);
     header.appendChild(eyeRow);
