@@ -20,6 +20,7 @@ const TransactionForm = {
         $$('.type-btn', form).forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         updateCategoryVisibility();
+        updateClasifVisibility();
         updateRecurringVisibility();
       });
       typeSelector.appendChild(btn);
@@ -54,7 +55,11 @@ const TransactionForm = {
     function updateCategoryVisibility() {
       categoryGroup.style.display = (selectedType === 'income') ? 'none' : 'block';
     }
+    function updateClasifVisibility() {
+      clasifGroup.style.display = (selectedType === 'expense') ? 'block' : 'none';
+    }
     updateCategoryVisibility();
+    updateClasifVisibility();
 
     const titleGroup = create('div', { className: 'form-group' });
     titleGroup.appendChild(create('label', { textContent: 'Título (opcional)' }));
@@ -162,7 +167,7 @@ const TransactionForm = {
     });
 
     function updateRecurringVisibility() {
-      recurringGroup.style.display = (selectedType === 'income') ? 'none' : 'block';
+      recurringGroup.style.display = (selectedType === 'expense') ? 'block' : 'none';
     }
     updateRecurringVisibility();
 
@@ -187,15 +192,18 @@ const TransactionForm = {
         tipo: selectedType,
         titulo,
         monto: parseFloat(amountInput.value),
-        fecha: dateInput.value,
-        clasificacion: clasifSelect.value
+        fecha: dateInput.value
       };
+
+      if (selectedType === 'expense') {
+        data.clasificacion = clasifSelect.value;
+      }
 
       if (selectedType !== 'income') {
         data.categoryId = categorySelect.value;
       }
 
-      if (recurringEnabled) {
+      if (selectedType === 'expense' && recurringEnabled) {
         data.recurrente = true;
         data.frecuencia = freqSelect.value;
         if (!indeterminadoCheckbox.checked && endDateInput.value) {

@@ -13,6 +13,14 @@ const LoginPage = {
 
     const CHANGELOG = [
       {
+        v: '1.5.3', date: '13/07/2026',
+        items: [
+          'Clasificación y recurrente solo para gastos',
+          'Eliminada sección "Gastos fijos" del Home',
+          'Fix sesión: trust proxy para Fly.io'
+        ]
+      },
+      {
         v: '1.5.2', date: '13/07/2026',
         items: [
           'Persistencia de datos con volumen en Fly.io',

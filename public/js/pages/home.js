@@ -12,20 +12,19 @@ const HomePage = {
     content.innerHTML = '<div class="loading">Cargando...</div>';
 
     try {
-      const [summary, transactions, categories, recurring] = await Promise.all([
+      const [summary, transactions, categories] = await Promise.all([
         API.summary.get(this.currentMonth),
         API.transactions.list(this.currentMonth),
-        API.categories.list(),
-        API.transactions.recurringTotal(this.currentMonth).catch(() => ({ total: 0, items: [] }))
+        API.categories.list()
       ]);
 
-      this.renderContent(content, summary, transactions, categories, recurring);
+      this.renderContent(content, summary, transactions, categories);
     } catch (err) {
       content.innerHTML = `<div class="empty-state"><p>Error: ${err.message}</p></div>`;
     }
   },
 
-  renderContent(content, summary, transactions, categories, recurring) {
+  renderContent(content, summary, transactions, categories) {
     const catMap = {};
     categories.forEach(c => catMap[c.id] = c);
 
@@ -76,31 +75,6 @@ const HomePage = {
     header.appendChild(eyeRow);
 
     content.appendChild(header);
-
-    if (recurring && recurring.total > 0) {
-      const fixedSection = create('div', { className: 'summary-section' });
-      fixedSection.appendChild(create('h3', { textContent: 'Gastos fijos', style: { marginBottom: '12px' } }));
-      fixedSection.appendChild(create('div', {
-        className: 'fixed-expenses-total',
-        style: { fontSize: 'var(--font-xl)', fontWeight: '700', color: 'var(--expense-color)', marginBottom: '12px' },
-        textContent: formatearEuro(recurring.total)
-      }));
-
-      recurring.items.forEach(item => {
-        const cat = catMap[item.categoryId];
-        const row = create('div', { className: 'fixed-expense-row' });
-        row.innerHTML = `
-          <span class="category-badge">
-            <span class="category-dot" style="background:${cat?.color || '#6c6c7c'}"></span>
-            ${item.titulo}
-          </span>
-          <span style="font-weight:600;">${formatearEuro(item.monto)}</span>
-        `;
-        fixedSection.appendChild(row);
-      });
-
-      content.appendChild(fixedSection);
-    }
 
     if (transactions.length > 0 || this.hasActiveFilters()) {
       const txSection = create('div');
