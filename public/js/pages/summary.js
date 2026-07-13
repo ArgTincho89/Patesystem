@@ -35,9 +35,14 @@ const SummaryPage = {
     statsRow.appendChild(this.createStat('Gastos', formatearEuro(summary.gastosNetos), 'var(--expense-color)'));
     statsRow.appendChild(this.createStat('Ahorro', `${savingsSign}${formatearEuro(summary.ahorro)}`, savingsColor));
     content.appendChild(statsRow);
-    const flatCats = summary.porCategoria.filter(c => c.neto > 0);
+    const allCats = [];
+    summary.porCategoria.forEach(c => {
+      allCats.push(c);
+      (c.children || []).forEach(ch => allCats.push(ch));
+    });
+    const flatCats = allCats.filter(c => c.neto > 0);
 
-    const chartCats = summary.porCategoria.filter(c => c.neto > 0);
+    const chartCats = allCats.filter(c => c.neto > 0);
 
     if (chartCats.length > 0) {
       const chartCard = create('div', { className: 'chart-container' });

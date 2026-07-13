@@ -142,7 +142,12 @@ select.form-control {
   font-size: clamp(1.3rem, 5vw, var(--font-2xl));
   font-weight: 700;
   margin-top: var(--space-xs);
-  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-header .stat-value {
+  font-size: clamp(1rem, 4.2vw, 1.5rem);
   white-space: nowrap;
 }
 

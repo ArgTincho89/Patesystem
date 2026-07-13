@@ -13,6 +13,14 @@ const LoginPage = {
 
     const CHANGELOG = [
       {
+        v: '1.5.6', date: '13/07/2026',
+        items: [
+          'Fix: Montos en Home ya no se cortan (€ adaptable al contenedor)',
+          'Fix: Gráficos de Distribución muestran TODOS los gastos (incluye categorías hijas)',
+          'Resumen mantiene tamaño de fuente original'
+        ]
+      },
+      {
         v: '1.5.5', date: '13/07/2026',
         items: [
           'Fix: Distribución de gastos ahora muestra todas las categorías (incluye hijas)',
