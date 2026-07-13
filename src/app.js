@@ -1,6 +1,5 @@
 const express = require('express');
 const session = require('express-session');
-const LokiStore = require('connect-loki')(session);
 const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
@@ -27,26 +26,17 @@ app.use(cors({ origin: config.appUrl, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const sessionConfig = {
+app.use(session({
   secret: config.sessionSecret,
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000
   }
-};
-
-if (!config.isTest) {
-  sessionConfig.store = new LokiStore({
-    path: path.join(config.dataDir, 'sessions.db'),
-    ttl: 7 * 24 * 60 * 60
-  });
-}
-
-app.use(session(sessionConfig));
+}));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);

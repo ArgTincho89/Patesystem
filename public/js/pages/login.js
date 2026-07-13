@@ -13,27 +13,69 @@ const LoginPage = {
 
     const CHANGELOG = [
       {
+        v: '1.5.2', date: '13/07/2026',
+        items: [
+          'Persistencia de datos con volumen en Fly.io',
+          'Health check endpoint para estabilidad del deploy',
+          'Sesiones persistentes en disco',
+          'Fix 502: variables de entorno APP_URL y SESSION_SECRET'
+        ]
+      },
+      {
+        v: '1.5.1', date: '12/07/2026',
+        items: [
+          'Foto de perfil guardada en el servidor',
+          'CI gate: tests obligatorios antes del deploy',
+          'Fix scroll en Estadísticas',
+          'Removida sección "Por categoría" del Home'
+        ]
+      },
+      {
+        v: '1.5.0', date: '12/07/2026',
+        items: [
+          'Modal de filtros en Inicio (tipo, categoría, monto, fechas)',
+          'Título de transacción ahora es opcional'
+        ]
+      },
+      {
+        v: '1.4.0', date: '12/07/2026',
+        items: [
+          'Editar transacciones',
+          'Campo Clasificación (Fijo/Variable) + pie chart',
+          'Meses con mayúscula, navegación a meses futuros'
+        ]
+      },
+      {
+        v: '1.3.0', date: '12/07/2026',
+        items: [
+          'Fix: transacciones recurrentes ahora impactan resumen y estadísticas',
+          'Función getMonthTransactions compartida'
+        ]
+      },
+      {
+        v: '1.2.0', date: '12/07/2026',
+        items: [
+          'Frecuencia bimensual',
+          'Símbolo €, botón ojo oculta ingresos y ahorro',
+          'Datepickers funcionales para recurrentes'
+        ]
+      },
+      {
         v: '1.1.0', date: '12/07/2026',
         items: [
           'Categorías jerárquicas (padre/hija)',
           'Transacciones recurrentes (mensual, semestral, anual)',
-          'Sección Gastos fijos en Home',
-          'Página de Perfil (foto, email, contraseña)',
-          'Ojo para ocultar ingresos en Home',
-          'Estadísticas con gráfico mensual',
+          'Página de Perfil con foto',
           'UI mobile-first mejorada'
         ]
       },
       {
         v: '1.0.0', date: '12/07/2026',
         items: [
-          'Versión inicial',
           'Login por nombre de usuario',
           'CRUD de categorías y transacciones',
           'Resumen mensual con gráficos',
-          'Tendencias multi-mes',
-          'PWA offline',
-          'Tema oscuro'
+          'PWA offline, tema oscuro'
         ]
       }
     ];
