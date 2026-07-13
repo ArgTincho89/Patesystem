@@ -13,6 +13,14 @@ const LoginPage = {
 
     const CHANGELOG = [
       {
+        v: '1.5.4', date: '13/07/2026',
+        items: [
+          'Valores de Gastos/Ingresos/Ahorro más grandes en móvil',
+          'Botón Filtrar con borde accent para mayor visibilidad',
+          'Nuevo icono PWA'
+        ]
+      },
+      {
         v: '1.5.3', date: '13/07/2026',
         items: [
           'Clasificación y recurrente solo para gastos',

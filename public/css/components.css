@@ -54,6 +54,11 @@
   font-size: var(--font-sm);
 }
 
+.btn-filter {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
 .btn-full {
   width: 100%;
 }
@@ -134,7 +139,7 @@ select.form-control {
 }
 
 .stat-value {
-  font-size: clamp(0.9rem, 3.5vw, var(--font-lg));
+  font-size: clamp(1.15rem, 4.5vw, var(--font-xl));
   font-weight: 700;
   margin-top: var(--space-xs);
   word-break: break-word;

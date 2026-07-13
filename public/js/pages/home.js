@@ -85,7 +85,7 @@ const HomePage = {
         style: { fontSize: 'var(--font-md)', margin: 0 }
       }));
       const filterBtn = create('button', {
-        className: 'btn btn-sm btn-ghost',
+        className: 'btn btn-sm btn-ghost btn-filter',
         textContent: this.hasActiveFilters() ? 'Filtrando' : 'Filtrar'
       });
       if (this.hasActiveFilters()) filterBtn.style.color = 'var(--accent)';

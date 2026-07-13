@@ -1,6 +1,6 @@
 {
   "name": "patesystem",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "Herramienta de finanzas personales multiusuario",
   "main": "src/server.js",
   "scripts": {
