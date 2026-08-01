@@ -1,10 +1,12 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
+# Copy deps first for layer caching
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 
+# Copy source — any change here invalidates cache
 COPY src/ ./src/
 COPY public/ ./public/
 
