@@ -13,6 +13,15 @@ const LoginPage = {
 
     const CHANGELOG = [
       {
+        v: '1.9.0', date: '01/08/2026',
+        items: [
+          'Navegación a meses futuros en Inicio (ahora con flecha derecha)',
+          'Imputar ingresos, gastos y reembolsos en meses futuros',
+          'Fecha del formulario por defecto al día 1 del mes visualizado',
+          'Service Worker v8: carga forzada de nuevos assets'
+        ]
+      },
+      {
         v: '1.8.0', date: '14/07/2026',
         items: [
           'Nuevo tipo de meta: "Límite de gasto general" para controlar el presupuesto total del mes',
