@@ -45,7 +45,7 @@ const HomePage = {
     const monthNav = createMonthSelector(this.currentMonth, (newMonth) => {
       this.currentMonth = newMonth;
       Router.navigate(`/home?month=${newMonth}`);
-    });
+    }, { allowFuture: true });
     content.appendChild(monthNav);
 
     const incomeHidden = localStorage.getItem('pate_hide_income') === 'true';
@@ -174,7 +174,11 @@ const HomePage = {
       textContent: '+',
       title: 'Agregar transacción'
     });
-    on(fab, 'click', () => TransactionForm.show(() => this.render({ month: this.currentMonth })));
+    on(fab, 'click', () => TransactionForm.show(
+      () => this.render({ month: this.currentMonth }),
+      null,
+      { defaultDate: `${this.currentMonth}-01` }
+    ));
     content.appendChild(fab);
   },
 

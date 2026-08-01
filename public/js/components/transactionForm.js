@@ -1,5 +1,5 @@
 const TransactionForm = {
-  async show(onSave, transaction = null) {
+  async show(onSave, transaction = null, options = {}) {
     const categories = await API.categories.list();
     const isEdit = !!transaction;
     let selectedType = transaction?.tipo || 'expense';
@@ -89,7 +89,7 @@ const TransactionForm = {
     const dateInput = create('input', {
       className: 'form-control',
       type: 'date',
-      value: transaction?.fecha || getToday()
+      value: transaction?.fecha || options.defaultDate || getToday()
     });
     dateGroup.appendChild(dateInput);
     form.appendChild(dateGroup);
