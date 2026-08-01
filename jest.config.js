@@ -13,5 +13,8 @@ module.exports = {
   verbose: true,
   maxWorkers: 1,
   forceExit: true,
-  detectOpenHandles: true
+  detectOpenHandles: true,
+  // OneDrive compatibility: reparse points are treated as symlinks by Node
+  haste: { enableSymlinks: true },
+  watchman: false
 };

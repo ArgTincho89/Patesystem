@@ -201,38 +201,36 @@ const EstadisticasPage = {
       monthCard.appendChild(ahorroStat);
 
       if (summary.porCategoria.length > 0) {
-        const allCats = [];
-        summary.porCategoria.forEach(c => {
-          allCats.push(c);
-          (c.children || []).forEach(ch => allCats.push(ch));
-        });
+        const chartCats = summary.porCategoria.filter(c => !c.parentId && c.neto > 0);
 
-        const catCard = create('div', { className: 'chart-container' });
-        catCard.appendChild(create('div', { className: 'chart-title', textContent: 'Distribución del mes' }));
+        if (chartCats.length > 0) {
+          const catCard = create('div', { className: 'chart-container' });
+          catCard.appendChild(create('div', { className: 'chart-title', textContent: 'Distribución del mes' }));
 
-        const donutWrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
-        const donutCanvas = create('canvas', { className: 'chart-canvas' });
-        donutWrapper.appendChild(donutCanvas);
-        catCard.appendChild(donutWrapper);
+          const donutWrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
+          const donutCanvas = create('canvas', { className: 'chart-canvas' });
+          donutWrapper.appendChild(donutCanvas);
+          catCard.appendChild(donutWrapper);
 
-        const catLegend = create('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px', justifyContent: 'center' } });
-        allCats.filter(c => c.neto > 0).forEach(cat => {
-          catLegend.appendChild(create('div', {
-            className: 'category-badge',
-            innerHTML: `<span class="category-dot" style="background:${cat.color || '#6c6c7c'}"></span>${cat.nombre}: ${formatearEuro(cat.neto)}`
+          const catLegend = create('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px', justifyContent: 'center' } });
+          chartCats.forEach(cat => {
+            catLegend.appendChild(create('div', {
+              className: 'category-badge',
+              innerHTML: `<span class="category-dot" style="background:${cat.color || '#6c6c7c'}"></span>${cat.nombre}: ${formatearEuro(cat.neto)}`
+            }));
+          });
+          catCard.appendChild(catLegend);
+          this._dataSection.appendChild(catCard);
+
+          const segments = chartCats.map(cat => ({
+            value: cat.neto,
+            color: cat.color || '#6c6c7c',
+            label: cat.nombre
           }));
-        });
-        catCard.appendChild(catLegend);
-        this._dataSection.appendChild(catCard);
-
-        const segments = allCats.filter(c => c.neto > 0).map(cat => ({
-          value: cat.neto,
-          color: cat.color || '#6c6c7c',
-          label: cat.nombre
-        }));
-        requestAnimationFrame(() => {
-          Charts.drawDonut(donutCanvas, segments, 200);
-        });
+          requestAnimationFrame(() => {
+            Charts.drawDonut(donutCanvas, segments, 200);
+          });
+        }
       }
     } else {
       this._dataSection.appendChild(create('div', {

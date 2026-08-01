@@ -50,7 +50,12 @@ const API = {
   },
 
   summary: {
-    get(month) { return API.get(`/summary?month=${month}`); }
+    get(month) { return API.get(`/summary?month=${month}`); },
+    burnRate(month, compare) {
+      let url = `/summary/burn-rate?month=${month}`;
+      if (compare) url += `&compare=${compare}`;
+      return API.get(url);
+    }
   },
 
   trends: {
@@ -59,5 +64,15 @@ const API = {
       if (categoryId) url += `&categoryId=${categoryId}`;
       return API.get(url);
     }
+  },
+
+  goals: {
+    list(month) {
+      let url = '/goals';
+      if (month) url += `?month=${month}`;
+      return API.get(url);
+    },
+    create(data) { return API.post('/goals', data); },
+    delete(id) { return API.delete(`/goals/${id}`); }
   }
 };

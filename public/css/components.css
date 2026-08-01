@@ -146,11 +146,6 @@ select.form-control {
   text-overflow: ellipsis;
 }
 
-.home-header .stat-value {
-  font-size: clamp(1rem, 4.2vw, 1.5rem);
-  white-space: nowrap;
-}
-
 .stat-label {
   font-size: var(--font-xs);
   color: var(--text-secondary);
@@ -427,6 +422,139 @@ select.form-control {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: var(--space-md);
+}
+
+/* Goal Progress Bar */
+.goal-progress-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.goal-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.goal-progress-label {
+  font-weight: 600;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.goal-progress-pct {
+  font-weight: 700;
+  font-size: var(--font-base);
+  color: var(--accent);
+}
+
+.goal-progress-pct.complete {
+  color: var(--success);
+}
+
+.goal-progress-track {
+  height: 10px;
+  background: var(--bg-input);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: var(--space-sm);
+}
+
+.goal-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+
+.goal-progress-fill.complete {
+  background: var(--success);
+}
+
+.goal-progress-pct.over-limit {
+  color: var(--danger);
+}
+
+.goal-progress-fill.over-limit {
+  background: var(--danger);
+}
+
+.goal-progress-fill.zone-green {
+  background: var(--success);
+}
+
+.goal-progress-fill.zone-yellow {
+  background: #F0AD4E;
+}
+
+.goal-progress-fill.zone-orange {
+  background: #E8740E;
+}
+
+.goal-progress-fill.zone-red {
+  background: var(--danger);
+}
+
+.goal-progress-details {
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
+.goal-progress-exceeded {
+  margin-top: var(--space-sm);
+  text-align: left;
+}
+
+.goal-exceeded-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  font-size: var(--font-sm);
+}
+
+.goal-exceeded-over {
+  color: var(--danger);
+  font-weight: 600;
+  margin-top: 4px;
+  border-top: 1px solid var(--bg-input);
+  padding-top: 6px;
+}
+
+.text-success {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.fv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: var(--space-md);
+  justify-content: center;
+}
+
+.fv-legend-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.fv-legend-pct {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 @media (min-width: 768px) {

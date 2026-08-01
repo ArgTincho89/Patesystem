@@ -28,6 +28,10 @@ const App = {
       if (!this.user) return Router.navigate('/login');
       EstadisticasPage.render(params);
     });
+    Router.register('/goals', () => {
+      if (!this.user) return Router.navigate('/login');
+      GoalsPage.render();
+    });
     Router.register('/categories', () => {
       if (!this.user) return Router.navigate('/login');
       CategoriesPage.render();
@@ -76,6 +80,14 @@ const App = {
           <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/>
         </svg>
         <span>Categorías</span>
+      </button>
+      <button class="navbar-item" data-route="/goals">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="6"/>
+          <circle cx="12" cy="12" r="2"/>
+        </svg>
+        <span>Metas</span>
       </button>
       <button class="navbar-item" data-route="/estadisticas">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

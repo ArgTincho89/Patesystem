@@ -116,6 +116,12 @@ describe('Summary Routes', () => {
       const res = await agent.get('/api/summary?month=2024-07');
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body.porCategoria)).toBe(true);
+
+      const parentCat = res.body.porCategoria.find(c => c.categoryId === parentRes.body.id);
+      expect(parentCat).toBeDefined();
+      expect(parentCat.neto).toBe(60);
+      expect(parentCat.children.length).toBe(1);
+      expect(parentCat.children[0].neto).toBe(20);
     });
 
     it('should include children even when parent has no direct expenses', async () => {
@@ -137,16 +143,106 @@ describe('Summary Routes', () => {
       const res = await agent.get('/api/summary?month=2024-08');
       expect(res.body.gastosNetos).toBe(150);
 
-      const allCats = [];
-      res.body.porCategoria.forEach(c => {
-        allCats.push(c);
-        (c.children || []).forEach(ch => allCats.push(ch));
-      });
-      const totalNeto = allCats.reduce((sum, c) => sum + c.neto, 0);
-      expect(totalNeto).toBe(150);
+      const parentCat = res.body.porCategoria.find(c => c.categoryId === parentRes.body.id);
+      expect(parentCat).toBeDefined();
+      expect(parentCat.neto).toBe(150);
+      expect(parentCat.children.length).toBe(2);
 
-      const childNames = allCats.filter(c => c.categoryId === child1Res.body.id || c.categoryId === child2Res.body.id);
-      expect(childNames.length).toBe(2);
+      const child1 = parentCat.children.find(c => c.categoryId === child1Res.body.id);
+      const child2 = parentCat.children.find(c => c.categoryId === child2Res.body.id);
+      expect(child1.neto).toBe(100);
+      expect(child2.neto).toBe(50);
+    });
+  });
+
+  describe('GET /api/summary/burn-rate', () => {
+    it('should require month parameter', async () => {
+      const res = await agent.get('/api/summary/burn-rate');
+      expect(res.status).toBe(400);
+    });
+
+    it('should require valid month format', async () => {
+      const res = await agent.get('/api/summary/burn-rate?month=invalid');
+      expect(res.status).toBe(400);
+    });
+
+    it('should return cumulative spending for current month', async () => {
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 100, titulo: 'Day5', categoryId, fecha: '2024-09-05'
+      });
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 50, titulo: 'Day8', categoryId, fecha: '2024-09-08'
+      });
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 30, titulo: 'Day8b', categoryId, fecha: '2024-09-08'
+      });
+
+      const res = await agent.get('/api/summary/burn-rate?month=2024-09&compare=1');
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.currentMonth)).toBe(true);
+      expect(res.body.currentMonth.length).toBeGreaterThan(0);
+
+      const day5 = res.body.currentMonth.find(d => d.day === 5);
+      expect(day5.cumulative).toBe(100);
+
+      const day8 = res.body.currentMonth.find(d => d.day === 8);
+      expect(day8.cumulative).toBe(180);
+
+      const day6 = res.body.currentMonth.find(d => d.day === 6);
+      expect(day6.cumulative).toBe(100);
+    });
+
+    it('should include recurring instances in burn rate', async () => {
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 200, titulo: 'Recurring Rent', categoryId,
+        fecha: '2024-10-01', recurrente: true, frecuencia: 'monthly'
+      });
+
+      const res = await agent.get('/api/summary/burn-rate?month=2024-10&compare=1');
+      expect(res.status).toBe(200);
+      const day1 = res.body.currentMonth.find(d => d.day === 1);
+      expect(day1.cumulative).toBe(200);
+    });
+
+    it('should return empty currentMonth when no expenses', async () => {
+      const res = await agent.get('/api/summary/burn-rate?month=2024-01&compare=1');
+      expect(res.status).toBe(200);
+      expect(res.body.currentMonth).toEqual([]);
+    });
+
+    it('should compare with previous month when compare=1', async () => {
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 100, titulo: 'PrevMonth', categoryId, fecha: '2024-06-05'
+      });
+
+      const res = await agent.get('/api/summary/burn-rate?month=2024-07&compare=1');
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.historical)).toBe(true);
+      expect(res.body.indicator).toHaveProperty('text');
+      expect(res.body.indicator).toHaveProperty('percentage');
+      expect(res.body.indicator).toHaveProperty('direction');
+    });
+
+    it('should average multiple months when compare=3', async () => {
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 60, titulo: 'M1', categoryId, fecha: '2024-03-10'
+      });
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 90, titulo: 'M2', categoryId, fecha: '2024-04-10'
+      });
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 120, titulo: 'M3', categoryId, fecha: '2024-05-10'
+      });
+
+      const res = await agent.get('/api/summary/burn-rate?month=2024-06&compare=3');
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.historical)).toBe(true);
+      expect(res.body.historical.length).toBeGreaterThan(0);
+    });
+
+    it('should handle invalid compare parameter', async () => {
+      const res = await agent.get('/api/summary/burn-rate?month=2024-09&compare=99');
+      expect(res.status).toBe(400);
     });
   });
 });

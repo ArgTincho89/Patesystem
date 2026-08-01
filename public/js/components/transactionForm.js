@@ -59,7 +59,6 @@ const TransactionForm = {
       clasifGroup.style.display = (selectedType === 'expense') ? 'block' : 'none';
     }
     updateCategoryVisibility();
-    updateClasifVisibility();
 
     const titleGroup = create('div', { className: 'form-group' });
     titleGroup.appendChild(create('label', { textContent: 'Título (opcional)' }));
@@ -103,6 +102,7 @@ const TransactionForm = {
     clasifSelect.value = transaction?.clasificacion || 'variable';
     clasifGroup.appendChild(clasifSelect);
     form.appendChild(clasifGroup);
+    updateClasifVisibility();
 
     const recurringGroup = create('div', { className: 'form-group recurring-section' });
     const recurringLabel = create('label', { className: 'checkbox-label' });

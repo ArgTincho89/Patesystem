@@ -152,14 +152,6 @@
   color: var(--accent);
 }
 
-.home-header {
-  background: var(--bg-secondary);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg);
-  margin-bottom: var(--space-lg);
-  overflow: hidden;
-}
-
 .month-nav {
   display: flex;
   align-items: center;
@@ -191,30 +183,26 @@
   opacity: 0.8;
 }
 
-.eye-toggle-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: var(--space-xs);
-}
-
 .eye-toggle-btn {
   background: none;
-  border: none;
+  border: 1px solid var(--border);
   color: var(--text-muted);
   cursor: pointer;
-  padding: var(--space-sm);
+  padding: 8px 10px;
   min-width: var(--touch-min);
-  min-height: var(--touch-min);
-  display: flex;
+  min-height: 36px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color var(--transition);
+  border-radius: var(--radius);
+  transition: all var(--transition);
   opacity: 0.6;
   -webkit-tap-highlight-color: transparent;
 }
 
 .eye-toggle-btn:hover {
   color: var(--text-primary);
+  background: var(--bg-hover);
   opacity: 1;
 }
 
@@ -594,6 +582,172 @@
   align-items: center;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Burn Rate */
+.burn-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-md);
+  font-size: var(--font-sm);
+  font-weight: 600;
+}
+
+.burn-indicator-up {
+  background: rgba(255, 107, 107, 0.15);
+  color: #FF6B6B;
+}
+
+.burn-indicator-down {
+  background: rgba(78, 205, 196, 0.15);
+  color: #4ECDC4;
+}
+
+.burn-indicator-flat {
+  background: rgba(108, 108, 124, 0.15);
+  color: #6c6c7c;
+}
+
+.burn-legend {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.burn-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+}
+
+.burn-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+}
+
+.burn-legend-dot-current {
+  background: #4ECDC4;
+}
+
+.burn-legend-dot-historical {
+  background: #6c6c7c;
+}
+
+/* Goals Page */
+.goals-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.goal-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.goal-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.goal-card-title {
+  font-weight: 700;
+  font-size: var(--font-base);
+}
+
+.goal-card-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.goal-card-detail {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.goal-card-range {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: var(--space-sm);
+}
+
+.goal-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.goal-modal-error {
+  background: rgba(255, 107, 107, 0.15);
+  color: #FF6B6B;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+  font-size: var(--font-sm);
+  font-weight: 500;
+}
+
+.goal-duration-tabs {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.goal-duration-tab {
+  flex: 1;
+  padding: 10px;
+  min-height: var(--touch-min);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.goal-duration-tab.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+.goal-month-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.goal-month-range {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.goal-month-hint {
+  font-size: var(--font-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: block;
+}
+
+.goal-periodo-section {
+  margin-top: var(--space-sm);
 }
 
 @media (min-width: 768px) {

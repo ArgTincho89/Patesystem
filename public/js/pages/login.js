@@ -13,6 +13,87 @@ const LoginPage = {
 
     const CHANGELOG = [
       {
+        v: '1.8.0', date: '14/07/2026',
+        items: [
+          'Nuevo tipo de meta: "Límite de gasto general" para controlar el presupuesto total del mes',
+          'Barra de progreso con 4 zonas de color: verde (0-49%), amarillo (50-75%), naranja (76-99%), rojo (100%+)',
+          'Desglose detallado al exceder el límite: límite, gasto actual y excedente',
+          'Soporte para monto fijo, porcentaje de salario y porcentaje de ingresos dinámico',
+          'Coexistencia: se pueden tener metas de ahorro, límite por categoría y límite general en el mismo mes'
+        ]
+      },
+      {
+        v: '1.7.2', date: '14/07/2026',
+        items: [
+          'Resumen: fix donut chart — ahora filtra correctamente solo categorías padre (sin duplicar hijos)',
+          'Estadísticas: fix donut chart — misma corrección, eliminado flatten de hijos que duplicaba montos'
+        ]
+      },
+      {
+        v: '1.7.1', date: '14/07/2026',
+        items: [
+          'Resumen: barras de categoría ahora muestran gasto total (padres incluyen hijos)',
+          'Resumen: gráfico donut solo muestra categorías padre (sin duplicar)',
+          'Resumen: meta de límite busca subcategorías en hijos recursivamente',
+          'Resumen: leyenda Fijo vs Variable ahora muestra porcentaje',
+          'Inicio: estadísticas reordenadas (Ingresos, Gastos, Ahorro) para consistencia',
+          'Inicio: icono de ojo movido al lado del botón Filtrar',
+          'Metas: eliminada opción deshabilitada "Control de consumo"'
+        ]
+      },
+      {
+        v: '1.7.0', date: '13/07/2026',
+        items: [
+          'Nuevo tipo de meta: "Límite de gasto por categoría/subcategoría"',
+          'Selector jerárquico de categorías en el modal de creación',
+          'Múltiples metas por mes permitidas (ahorro + límites de gasto)',
+          'Confirmación al duplicar metas del mismo tipo en el mismo período',
+          'Barra de progreso inversa: verde dentro del límite, rojo al exceder',
+          'Información detallada de excedente en metas que superan el límite'
+        ]
+      },
+      {
+        v: '1.6.3', date: '13/07/2026',
+        items: [
+          'Mejorados iconos de editar/eliminar en tarjetas de metas',
+          'Eliminado valor del salario del resumen de parámetros'
+        ]
+      },
+      {
+        v: '1.6.2', date: '13/07/2026',
+        items: [
+          'Renombrado "Metas de ahorro" a "Metas financieras"',
+          'Tarjetas mejoradas: muestra tipo, parámetros y rango de meses',
+          'Botón de editar meta agregado',
+          'Barra de progreso en Resumen: eliminado texto "Restante"'
+        ]
+      },
+      {
+        v: '1.6.1', date: '13/07/2026',
+        items: [
+          'Rediseño de Metas: formulario ahora se abre en modal flotante',
+          'Selector de período inteligente: Mes único o Múltiples meses (rango)',
+          'Jerarquía de opciones preparada para futuros tipos de metas',
+          'Eliminada la grilla de meses fija'
+        ]
+      },
+      {
+        v: '1.6.0', date: '13/07/2026',
+        items: [
+          'Nuevo: Metas de ahorro (monto fijo, % salario, % ingresos dinámico)',
+          'Nuevo: Gráfico de ritmo de gasto (burn rate) en Resumen',
+          'Barra de progreso de meta en Resumen mensual',
+          'Página Metas con selector de meses y CRUD completo'
+        ]
+      },
+      {
+        v: '1.5.9', date: '13/07/2026',
+        items: [
+          'Fix: Editar transacción desde Inicio ahora abre el formulario correctamente',
+          'Texto de login actualizado'
+        ]
+      },
+      {
         v: '1.5.8', date: '13/07/2026',
         items: [
           'Fix: Gráficos ahora muestran TODOS los gastos incluyendo subcategorías',
@@ -131,7 +212,7 @@ const LoginPage = {
         <div class="login-card">
           <div class="login-logo">
             <h1>PateSystem</h1>
-            <p>Finanzas personales</p>
+            <p>La información es poder, sobretodo en tus finanzas</p>
           </div>
           <div class="login-tabs">
             <button class="login-tab active" data-tab="login">Iniciar sesión</button>

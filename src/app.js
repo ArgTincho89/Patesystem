@@ -12,6 +12,7 @@ const categoryRoutes = require('./routes/categories');
 const transactionRoutes = require('./routes/transactions');
 const summaryRoutes = require('./routes/summary');
 const trendsRoutes = require('./routes/trends');
+const goalRoutes = require('./routes/goals');
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/summary', summaryRoutes);
 app.use('/api/trends', trendsRoutes);
+app.use('/api/goals', goalRoutes);
 
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
