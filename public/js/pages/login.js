@@ -13,6 +13,13 @@ const LoginPage = {
 
     const CHANGELOG = [
       {
+        v: '1.9.1', date: '04/08/2026',
+        items: [
+          'Fix: nueva transacción ahora marca como fecha por defecto el día actual (antes el día 1 del mes)',
+          'Service Worker v9: carga forzada de nuevos assets'
+        ]
+      },
+      {
         v: '1.9.0', date: '01/08/2026',
         items: [
           'Navegación a meses futuros en Inicio (ahora con flecha derecha)',

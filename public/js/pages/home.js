@@ -175,9 +175,7 @@ const HomePage = {
       title: 'Agregar transacción'
     });
     on(fab, 'click', () => TransactionForm.show(
-      () => this.render({ month: this.currentMonth }),
-      null,
-      { defaultDate: `${this.currentMonth}-01` }
+      () => this.render({ month: this.currentMonth })
     ));
     content.appendChild(fab);
   },
