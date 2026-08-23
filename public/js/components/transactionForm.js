@@ -60,13 +60,14 @@ const TransactionForm = {
       const validClassifications = selectedType === 'income' ? ['A', 'B', 'Mixto'] : ['fijo', 'variable'];
       const currentClassification = validClassifications.includes(clasifSelect.value)
         ? clasifSelect.value
-        : (selectedType === 'income' ? 'B' : 'variable');
+        : (selectedType === 'income' ? 'A' : 'variable');
       clasifSelect.value = currentClassification;
       Object.entries(classificationCheckboxes).forEach(([value, checkbox]) => {
         checkbox.parentElement.style.display = validClassifications.includes(value) ? 'inline-flex' : 'none';
         checkbox.checked = value === currentClassification;
       });
       incomeSplitGroup.style.display = selectedType === 'income' && currentClassification === 'Mixto' ? 'block' : 'none';
+      ivaGroup.style.display = selectedType === 'income' && (currentClassification === 'A' || currentClassification === 'Mixto') ? 'block' : 'none';
     }
     updateCategoryVisibility();
 
@@ -104,6 +105,30 @@ const TransactionForm = {
     incomeSplitGroup.appendChild(incomeSplitRow);
     form.appendChild(incomeSplitGroup);
 
+    // Auto-fill B with the remaining total while typing A in Mixto mode.
+    on(amountAInput, 'input', () => {
+      if (clasifSelect.value !== 'Mixto') return;
+      const total = parseFloat(amountInput.value);
+      const partA = parseFloat(amountAInput.value);
+      if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(partA) || partA < 0) return;
+      const remainder = Math.round((total - partA) * 100) / 100;
+      amountBInput.value = remainder >= 0 ? String(remainder) : '';
+    });
+
+    const ivaGroup = create('div', { className: 'form-group', style: { display: 'none' } });
+    ivaGroup.appendChild(create('label', { textContent: 'IVA (%)' }));
+    const ivaInput = create('input', {
+      className: 'form-control',
+      type: 'number',
+      step: '0.01',
+      min: '0',
+      max: '100',
+      placeholder: '21'
+    });
+    ivaInput.value = transaction?.ivaPorcentaje ?? '';
+    ivaGroup.appendChild(ivaInput);
+    form.appendChild(ivaGroup);
+
     const dateGroup = create('div', { className: 'form-group' });
     dateGroup.appendChild(create('label', { textContent: 'Fecha' }));
     const dateInput = create('input', {
@@ -125,7 +150,7 @@ const TransactionForm = {
     [['A', 'A'], ['B', 'B'], ['Mixto', 'Mixto'], ['variable', 'Variable'], ['fijo', 'Fijo']].forEach(([value, label]) => {
       const optionLabel = create('label', { className: 'checkbox-label' });
       const checkbox = create('input', { type: 'checkbox', className: 'form-checkbox' });
-      checkbox.checked = value === (selectedType === 'income' ? (transaction?.clasificacion || 'B') : (transaction?.clasificacion || 'variable'));
+      checkbox.checked = value === (selectedType === 'income' ? (transaction?.clasificacion || 'A') : (transaction?.clasificacion || 'variable'));
       on(checkbox, 'change', () => {
         if (checkbox.checked) {
           Object.entries(classificationCheckboxes).forEach(([otherValue, otherCheckbox]) => {
@@ -251,6 +276,19 @@ const TransactionForm = {
       if (selectedType === 'income' && clasifSelect.value === 'Mixto') {
         data.montoA = parseFloat(amountAInput.value);
         data.montoB = parseFloat(amountBInput.value);
+      }
+
+      if (selectedType === 'income' && (clasifSelect.value === 'A' || clasifSelect.value === 'Mixto')) {
+        const ivaRaw = ivaInput.value.trim();
+        if (ivaRaw === '') {
+          data.ivaPorcentaje = null;
+        } else {
+          const ivaValue = parseFloat(ivaRaw);
+          if (!Number.isFinite(ivaValue) || ivaValue < 0 || ivaValue > 100) {
+            return showToast('El IVA debe estar entre 0 y 100', 'error');
+          }
+          data.ivaPorcentaje = ivaValue;
+        }
       }
 
       if (selectedType !== 'income') {

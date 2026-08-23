@@ -110,6 +110,18 @@ describe('Trends Routes', () => {
       expect(res.body.monthlyData[1].porcentajeB).toBe(0);
     });
 
+    it('should include accumulated IVA per month with zero for months without income', async () => {
+      await agent.post('/api/transactions').send({ tipo: 'income', monto: 200, titulo: 'IVA trend', fecha: '2024-04-10', clasificacion: 'A', ivaPorcentaje: 21 });
+      await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'IVA trend mixed', fecha: '2024-05-10', clasificacion: 'Mixto', montoA: 25, montoB: 75, ivaPorcentaje: 4 });
+
+      const res = await agent.get('/api/trends?from=2024-03&to=2024-05');
+      expect(res.body.monthlyData).toHaveLength(3);
+      expect(res.body.monthlyData[0].ivaAcumulado).toBe(0);
+      expect(Number.isNaN(res.body.monthlyData[0].ivaAcumulado)).toBe(false);
+      expect(res.body.monthlyData[1].ivaAcumulado).toBe(42);
+      expect(res.body.monthlyData[2].ivaAcumulado).toBe(1);
+    });
+
     it('should handle single month range', async () => {
       const res = await agent.get('/api/trends?from=2024-03&to=2024-03');
       expect(res.status).toBe(200);

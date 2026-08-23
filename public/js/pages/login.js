@@ -5,13 +5,26 @@ const LoginPage = {
     navbar.style.display = 'none';
     content.style.paddingBottom = 'var(--space-xl)';
 
-    let versionData = { version: '1.10.0' };
+    let versionData = { version: '1.11.1' };
     try {
       const res = await fetch('/version.json');
       versionData = await res.json();
     } catch {}
 
     const CHANGELOG = [
+      {
+        v: '1.11.1', date: '23/08/2026',
+        items: [
+          'Desglose Mixto: al ingresar el importe A se completa B con el saldo restante'
+        ]
+      },
+      {
+        v: '1.11.0', date: '23/08/2026',
+        items: [
+          'Campo IVA (%) en ingresos, con IVA acumulado en Resumen y Estadísticas',
+          'Clasificación de ingresos por defecto ahora es A'
+        ]
+      },
       {
         v: '1.10.0', date: '23/08/2026',
         items: [

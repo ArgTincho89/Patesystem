@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.11.1] - 2026-08-23
+
+### Added
+- Desglose Mixto autocompleta B con el saldo restante al ingresar A.
+
+
+## [1.11.0] - 2026-08-23
+
+### Added
+- Campo opcional `IVA (%)` en el formulario de ingresos, aplicable al importe A o a la parte A de ingresos Mixtos.
+- "IVA acumulado" en el Resumen mensual y gráfico "IVA acumulado por mes" en Estadísticas.
+
+### Changed
+- Clasificación de ingresos por defecto ahora es A (antes B).
+
 ## [1.10.0] - 2026-08-23
 
 ### Added

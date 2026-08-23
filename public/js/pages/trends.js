@@ -319,6 +319,22 @@ const EstadisticasPage = {
         { data: trends.monthlyData.map(d => d.porcentajeA), color: '#4ECDC4' },
         { data: trends.monthlyData.map(d => d.porcentajeB), color: '#FF6B6B' }
       ], labels, { height: 200, valueFormatter: value => `${value.toFixed(0)}%` }));
+
+      const ivaCard = create('div', { className: 'chart-container' });
+      ivaCard.appendChild(create('div', { className: 'chart-title', textContent: 'IVA acumulado por mes' }));
+      const ivaWrapper = create('div');
+      const ivaCanvas = create('canvas');
+      ivaWrapper.appendChild(ivaCanvas);
+      ivaCard.appendChild(ivaWrapper);
+      const ivaLegend = create('div', { className: 'fv-legend' });
+      ivaLegend.appendChild(create('div', { className: 'category-badge', innerHTML: '<span class="category-dot" style="background:#FFE66D"></span>IVA acumulado' }));
+      ivaCard.appendChild(ivaLegend);
+      this._trendsSection.appendChild(ivaCard);
+      requestAnimationFrame(() => Charts.drawBarChart(ivaCanvas, trends.monthlyData.map((d, i) => ({
+        value: d.ivaAcumulado || 0,
+        color: '#FFE66D',
+        label: labels[i]
+      })), { height: 180 }));
     } else {
       this._trendsSection.appendChild(create('div', {
         className: 'empty-state',

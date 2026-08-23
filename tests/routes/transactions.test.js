@@ -183,6 +183,53 @@ describe('Transactions Routes', () => {
       expect(res.body.montoB).toBe(60);
     });
 
+    it('should create an income with IVA and persist it', async () => {
+      const res = await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'IVA income', fecha: '2024-03-21', clasificacion: 'A', ivaPorcentaje: 21 });
+      expect(res.status).toBe(201);
+      expect(res.body.ivaPorcentaje).toBe(21);
+
+      const getRes = await agent.get('/api/transactions?month=2024-03');
+      const stored = getRes.body.find(t => t.id === res.body.id);
+      expect(stored.ivaPorcentaje).toBe(21);
+    });
+
+    it('should accept boundary IVA values 0 and 100', async () => {
+      const zeroRes = await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'IVA zero', fecha: '2024-03-22', clasificacion: 'A', ivaPorcentaje: 0 });
+      const maxRes = await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'IVA max', fecha: '2024-03-22', clasificacion: 'A', ivaPorcentaje: 100 });
+      expect(zeroRes.status).toBe(201);
+      expect(zeroRes.body.ivaPorcentaje).toBe(0);
+      expect(maxRes.status).toBe(201);
+      expect(maxRes.body.ivaPorcentaje).toBe(100);
+    });
+
+    it('should round IVA to 2 decimals', async () => {
+      const res = await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'IVA round', fecha: '2024-03-23', clasificacion: 'A', ivaPorcentaje: 10.555 });
+      expect(res.status).toBe(201);
+      expect(res.body.ivaPorcentaje).toBe(10.56);
+    });
+
+    it('should store null IVA when not provided', async () => {
+      const res = await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'No IVA', fecha: '2024-03-24', clasificacion: 'A' });
+      expect(res.status).toBe(201);
+      expect(res.body.ivaPorcentaje).toBeNull();
+    });
+
+    it('should reject out-of-range and non-numeric IVA on create', async () => {
+      const negative = await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'IVA neg', fecha: '2024-03-25', clasificacion: 'A', ivaPorcentaje: -1 });
+      const over = await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'IVA over', fecha: '2024-03-25', clasificacion: 'A', ivaPorcentaje: 100.01 });
+      const nonNumeric = await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'IVA str', fecha: '2024-03-25', clasificacion: 'A', ivaPorcentaje: 'abc' });
+      expect(negative.status).toBe(400);
+      expect(over.status).toBe(400);
+      expect(nonNumeric.status).toBe(400);
+    });
+
+    it('should reject IVA on non-income records', async () => {
+      const expenseRes = await agent.post('/api/transactions').send({ tipo: 'expense', monto: 50, titulo: 'IVA expense', categoryId, fecha: '2024-03-26', ivaPorcentaje: 21 });
+      const refundRes = await agent.post('/api/transactions').send({ tipo: 'refund', monto: 50, titulo: 'IVA refund', categoryId, fecha: '2024-03-26', ivaPorcentaje: 21 });
+      expect(expenseRes.status).toBe(400);
+      expect(refundRes.status).toBe(400);
+    });
+
     it('should reject invalid income classifications and splits on non-income records', async () => {
       const invalidClass = await agent.post('/api/transactions').send({ tipo: 'income', monto: 10, clasificacion: 'variable' });
       const invalidSplit = await agent.post('/api/transactions').send({ tipo: 'expense', monto: 10, categoryId, montoA: 5, montoB: 5 });
@@ -336,6 +383,71 @@ describe('Transactions Routes', () => {
       const updated = getRes.body.find(transaction => transaction.id === createRes.body.id);
       expect(updated.montoA).toBe(25);
       expect(updated.montoB).toBe(75);
+    });
+
+    it('should update IVA on an income and persist it', async () => {
+      const createRes = await agent.post('/api/transactions').send({
+        tipo: 'income', monto: 200, titulo: 'IVA Update', fecha: '2024-03-15', clasificacion: 'A'
+      });
+
+      const updateRes = await agent.put(`/api/transactions/${createRes.body.id}`).send({ ivaPorcentaje: 21 });
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.ivaPorcentaje).toBe(21);
+
+      const getRes = await agent.get('/api/transactions');
+      const stored = getRes.body.find(t => t.id === createRes.body.id);
+      expect(stored.ivaPorcentaje).toBe(21);
+    });
+
+    it('should clear IVA when set to null on update', async () => {
+      const createRes = await agent.post('/api/transactions').send({
+        tipo: 'income', monto: 200, titulo: 'IVA Clear', fecha: '2024-03-15', clasificacion: 'A', ivaPorcentaje: 10
+      });
+
+      const updateRes = await agent.put(`/api/transactions/${createRes.body.id}`).send({ ivaPorcentaje: null });
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.ivaPorcentaje).toBeNull();
+    });
+
+    it('should reject invalid IVA values on update', async () => {
+      const createRes = await agent.post('/api/transactions').send({
+        tipo: 'income', monto: 200, titulo: 'IVA BadUpdate', fecha: '2024-03-15', clasificacion: 'A'
+      });
+      const overRes = await agent.put(`/api/transactions/${createRes.body.id}`).send({ ivaPorcentaje: 150 });
+      const negativeRes = await agent.put(`/api/transactions/${createRes.body.id}`).send({ ivaPorcentaje: -0.5 });
+      expect(overRes.status).toBe(400);
+      expect(negativeRes.status).toBe(400);
+    });
+
+    it('should reject IVA on non-income updates', async () => {
+      const createRes = await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 50, titulo: 'IVA ExpUpd', categoryId, fecha: '2024-03-15'
+      });
+      const res = await agent.put(`/api/transactions/${createRes.body.id}`).send({ ivaPorcentaje: 21 });
+      expect(res.status).toBe(400);
+    });
+
+    it('should keep IVA when updating mixed income splits', async () => {
+      const createRes = await agent.post('/api/transactions').send({
+        tipo: 'income', monto: 100, titulo: 'Mixed IVA', fecha: '2024-03-16',
+        clasificacion: 'Mixto', montoA: 40, montoB: 60, ivaPorcentaje: 21
+      });
+
+      const updateRes = await agent.put(`/api/transactions/${createRes.body.id}`).send({ montoA: 25, montoB: 75 });
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.montoA).toBe(25);
+      expect(updateRes.body.montoB).toBe(75);
+      expect(updateRes.body.ivaPorcentaje).toBe(21);
+    });
+
+    it('should clear IVA when switching an income to expense', async () => {
+      const createRes = await agent.post('/api/transactions').send({
+        tipo: 'income', monto: 200, titulo: 'IVA Switch', fecha: '2024-03-15', clasificacion: 'A', ivaPorcentaje: 21
+      });
+
+      const updateRes = await agent.put(`/api/transactions/${createRes.body.id}`).send({ tipo: 'expense', categoryId });
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.ivaPorcentaje).toBeNull();
     });
 
     it('should return 404 for non-existent', async () => {

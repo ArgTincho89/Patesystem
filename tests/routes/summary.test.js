@@ -78,6 +78,28 @@ describe('Summary Routes', () => {
       expect(res.body.porcentajeB).toBe(0);
     });
 
+    it('should accumulate IVA across A and Mixto incomes and skip B', async () => {
+      await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'IVA A income', fecha: '2025-01-05', clasificacion: 'A', ivaPorcentaje: 21 });
+      await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'IVA Mixed income', fecha: '2025-01-06', clasificacion: 'Mixto', montoA: 40, montoB: 60, ivaPorcentaje: 10.5 });
+      await agent.post('/api/transactions').send({ tipo: 'income', monto: 50, titulo: 'IVA B income', fecha: '2025-01-07', clasificacion: 'B', ivaPorcentaje: 21 });
+
+      const res = await agent.get('/api/summary?month=2025-01');
+      expect(res.body.ivaAcumulado).toBe(25.2);
+    });
+
+    it('should round accumulated IVA to cents', async () => {
+      await agent.post('/api/transactions').send({ tipo: 'income', monto: 33.33, titulo: 'IVA rounding', fecha: '2025-02-05', clasificacion: 'A', ivaPorcentaje: 9 });
+
+      const res = await agent.get('/api/summary?month=2025-02');
+      expect(res.body.ivaAcumulado).toBe(3);
+    });
+
+    it('should return zero IVA for months without income', async () => {
+      const res = await agent.get('/api/summary?month=2025-03');
+      expect(res.body.ivaAcumulado).toBe(0);
+      expect(Number.isNaN(res.body.ivaAcumulado)).toBe(false);
+    });
+
     it('should show negative savings when expenses exceed income', async () => {
       await agent.post('/api/transactions').send({
         tipo: 'expense', monto: 3000, titulo: 'Big expense', categoryId, fecha: '2024-04-10'

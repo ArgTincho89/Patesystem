@@ -52,11 +52,14 @@ const SummaryPage = {
         legend.appendChild(create('div', { className: 'fv-legend-item', innerHTML: `<div class="category-badge"><span class="category-dot" style="background:${color}"></span>${label}: ${formatearEuro(value)}</div><div class="fv-legend-pct">${pct}%</div>` }));
       });
       incomeCard.appendChild(legend);
+      incomeCard.appendChild(this.createIvaBadge(summary));
       content.appendChild(incomeCard);
       requestAnimationFrame(() => Charts.drawDonut(canvas, [
         { value: summary.ingresosA, color: '#4ECDC4', label: 'A' },
         { value: summary.ingresosB, color: '#FF6B6B', label: 'B' }
       ], 200));
+    } else {
+      content.appendChild(this.createIvaBadge(summary));
     }
 
     if (goals && goals.length > 0) {
@@ -524,5 +527,13 @@ const SummaryPage = {
     val.style.color = color;
     card.appendChild(val);
     return card;
+  },
+
+  createIvaBadge(summary) {
+    const badge = create('div', { className: 'category-badge' });
+    badge.style.justifyContent = 'center';
+    badge.style.marginTop = '12px';
+    badge.innerHTML = `<span class="category-dot" style="background:#FFE66D"></span>IVA acumulado: ${formatearEuro(summary.ivaAcumulado ?? 0)}`;
+    return badge;
   }
 };

@@ -1,7 +1,7 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { getMonthTransactions } = require('../utils/recurring');
-const { getIncomeBreakdown, getIncomePercentages, roundCents } = require('../utils/income');
+const { getIncomeBreakdown, getIncomePercentages, getIncomeIva, roundCents } = require('../utils/income');
 
 const router = express.Router();
 
@@ -43,6 +43,7 @@ router.get('/', (req, res) => {
     let ingresos = 0;
     let ingresosA = 0;
     let ingresosB = 0;
+    let ivaAcumuladoMes = 0;
     let gastos = 0;
     let reembolsos = 0;
     const porCategoria = {};
@@ -65,6 +66,7 @@ router.get('/', (req, res) => {
         const breakdown = getIncomeBreakdown(t);
         ingresosA += breakdown.a;
         ingresosB += breakdown.b;
+        ivaAcumuladoMes += getIncomeIva(t);
       } else if (t.tipo === 'expense') {
         gastos += t.monto;
         if (porCategoria[t.categoryId]) {
@@ -98,6 +100,7 @@ router.get('/', (req, res) => {
          porcentajeA: incomePercentages.porcentajeA,
          porcentajeB: incomePercentages.porcentajeB
        },
+       ivaAcumulado: roundCents(ivaAcumuladoMes),
       gastos: Math.round(gastos * 100) / 100,
       reembolsos: Math.round(reembolsos * 100) / 100,
       gastosNetos: Math.round(gastosNetos * 100) / 100,

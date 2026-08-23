@@ -30,4 +30,14 @@ function getIncomePercentages(a, b) {
   };
 }
 
-module.exports = { getIncomeBreakdown, getIncomePercentages, roundCents };
+// VAT only applies to the A part: full monto for 'A', montoA for 'Mixto', none otherwise.
+function getIncomeIva(transaction) {
+  const breakdown = getIncomeBreakdown(transaction);
+  const ivaPorcentaje = Number(transaction.ivaPorcentaje);
+  if (!Number.isFinite(ivaPorcentaje) || ivaPorcentaje <= 0 || breakdown.a <= 0) {
+    return 0;
+  }
+  return roundCents(breakdown.a * ivaPorcentaje / 100);
+}
+
+module.exports = { getIncomeBreakdown, getIncomePercentages, getIncomeIva, roundCents };

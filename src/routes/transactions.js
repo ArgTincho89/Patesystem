@@ -66,7 +66,7 @@ router.get('/recurring-total', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion, montoA, montoB } = req.body;
+  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion, montoA, montoB, ivaPorcentaje } = req.body;
 
   if (!tipo || !['expense', 'income', 'refund'].includes(tipo)) {
     return res.status(400).json({ error: 'Tipo inválido. Debe ser: expense, income o refund' });
@@ -95,8 +95,13 @@ router.post('/', (req, res) => {
     } else if (clasificacion === 'Mixto') {
       return res.status(400).json({ error: 'La clasificación Mixto requiere importes A y B' });
     }
+    if (ivaPorcentaje !== undefined && ivaPorcentaje !== null && (typeof ivaPorcentaje !== 'number' || !Number.isFinite(ivaPorcentaje) || ivaPorcentaje < 0 || ivaPorcentaje > 100)) {
+      return res.status(400).json({ error: 'El IVA debe ser un número entre 0 y 100' });
+    }
   } else if (montoA !== undefined || montoB !== undefined) {
     return res.status(400).json({ error: 'Los importes A y B solo son válidos para ingresos' });
+  } else if (ivaPorcentaje !== undefined && ivaPorcentaje !== null) {
+    return res.status(400).json({ error: 'El IVA solo es válido para ingresos' });
   } else if (clasificacion && !['fijo', 'variable'].includes(clasificacion)) {
     return res.status(400).json({ error: 'Clasificación inválida. Debe ser: fijo o variable' });
   }
@@ -127,7 +132,8 @@ router.post('/', (req, res) => {
     fechaFin: recurrente ? (fechaFin || null) : null,
     clasificacion: tipo === 'income' ? (clasificacion || null) : (clasificacion || 'variable'),
     montoA: tipo === 'income' && clasificacion === 'Mixto' ? roundCents(montoA) : null,
-    montoB: tipo === 'income' && clasificacion === 'Mixto' ? roundCents(montoB) : null
+    montoB: tipo === 'income' && clasificacion === 'Mixto' ? roundCents(montoB) : null,
+    ivaPorcentaje: tipo === 'income' && ivaPorcentaje !== undefined && ivaPorcentaje !== null ? roundCents(ivaPorcentaje) : null
   }, userId);
 
   res.status(201).json(transaction);
@@ -137,7 +143,7 @@ router.put('/:id', (req, res) => {
   const db = req.app.locals.db;
   const userId = req.session.userId;
   const { id } = req.params;
-  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion, montoA, montoB } = req.body;
+  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion, montoA, montoB, ivaPorcentaje } = req.body;
 
   const transaction = db.findById('transactions', id, userId);
   if (!transaction) {
@@ -152,6 +158,12 @@ router.put('/:id', (req, res) => {
     const finalClasificacion = clasificacion !== undefined ? clasificacion : transaction.clasificacion;
     if (finalClasificacion !== 'Mixto' || typeof montoA !== 'number' || typeof montoB !== 'number' || montoA < 0 || montoB < 0 || roundCents(montoA + montoB) !== roundCents(finalMonto)) {
       return res.status(400).json({ error: 'Los importes A y B deben ser positivos o cero y sumar el monto total' });
+    }
+  }
+  if (ivaPorcentaje !== undefined && ivaPorcentaje !== null) {
+    if (finalTipo !== 'income') return res.status(400).json({ error: 'El IVA solo es válido para ingresos' });
+    if (typeof ivaPorcentaje !== 'number' || !Number.isFinite(ivaPorcentaje) || ivaPorcentaje < 0 || ivaPorcentaje > 100) {
+      return res.status(400).json({ error: 'El IVA debe ser un número entre 0 y 100' });
     }
   }
   if (tipo !== undefined) {
@@ -189,6 +201,9 @@ router.put('/:id', (req, res) => {
     }
     updates.clasificacion = clasificacion;
   }
+  if (ivaPorcentaje !== undefined) {
+    updates.ivaPorcentaje = ivaPorcentaje === null ? null : roundCents(ivaPorcentaje);
+  }
 
   const finalCategoryId = updates.categoryId !== undefined ? updates.categoryId : transaction.categoryId;
 
@@ -199,6 +214,7 @@ router.put('/:id', (req, res) => {
     updates.clasificacion = 'variable';
     updates.montoA = null;
     updates.montoB = null;
+    updates.ivaPorcentaje = null;
   }
   if (finalTipo === 'income' && clasificacion !== 'Mixto' && clasificacion !== undefined) {
     updates.montoA = null;
