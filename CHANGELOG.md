@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.2] - 2026-08-23
+
+### Changed
+- Resumen: el gráfico Ingresos A vs B se muestra al final, debajo de Fijo vs Variable.
+- Resumen: IVA acumulado se muestra como último elemento de la página.
+
+
 ## [1.11.1] - 2026-08-23
 
 ### Added

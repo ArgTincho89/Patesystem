@@ -5,13 +5,19 @@ const LoginPage = {
     navbar.style.display = 'none';
     content.style.paddingBottom = 'var(--space-xl)';
 
-    let versionData = { version: '1.11.1' };
+    let versionData = { version: '1.11.2' };
     try {
       const res = await fetch('/version.json');
       versionData = await res.json();
     } catch {}
 
     const CHANGELOG = [
+      {
+        v: '1.11.2', date: '23/08/2026',
+        items: [
+          'Resumen: gráfico A vs B movido al final, debajo de Fijo vs Variable; IVA acumulado al pie'
+        ]
+      },
       {
         v: '1.11.1', date: '23/08/2026',
         items: [
