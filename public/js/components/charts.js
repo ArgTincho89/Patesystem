@@ -78,7 +78,7 @@ const Charts = {
       ctx.font = '10px -apple-system, sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText(formatearEuro(val), padding.left - 8, y);
+       ctx.fillText(formatearEuro(val), padding.left - 8, y);
     }
 
     data.forEach((d, i) => {
@@ -144,7 +144,7 @@ const Charts = {
       ctx.font = '10px -apple-system, sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText(formatearEuro(val), padding.left - 8, y);
+       ctx.fillText(options.valueFormatter ? options.valueFormatter(val) : formatearEuro(val), padding.left - 8, y);
     }
 
     const gap = chartW / (labels.length - 1 || 1);

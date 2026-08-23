@@ -303,6 +303,22 @@ const EstadisticasPage = {
           Charts.drawLineChart(catCanvas, datasets, labels, { height: 220 });
         });
       }
+
+      const incomeCard = create('div', { className: 'chart-container' });
+      incomeCard.appendChild(create('div', { className: 'chart-title', textContent: 'Evolución porcentual A vs B' }));
+      const incomeCanvas = create('canvas');
+      const incomeWrapper = create('div');
+      incomeWrapper.appendChild(incomeCanvas);
+      incomeCard.appendChild(incomeWrapper);
+      const incomeLegend = create('div', { className: 'fv-legend' });
+      incomeLegend.appendChild(create('div', { className: 'category-badge', innerHTML: '<span class="category-dot" style="background:#4ECDC4"></span>A' }));
+      incomeLegend.appendChild(create('div', { className: 'category-badge', innerHTML: '<span class="category-dot" style="background:#FF6B6B"></span>B' }));
+      incomeCard.appendChild(incomeLegend);
+      this._trendsSection.appendChild(incomeCard);
+      requestAnimationFrame(() => Charts.drawLineChart(incomeCanvas, [
+        { data: trends.monthlyData.map(d => d.porcentajeA), color: '#4ECDC4' },
+        { data: trends.monthlyData.map(d => d.porcentajeB), color: '#FF6B6B' }
+      ], labels, { height: 200, valueFormatter: value => `${value.toFixed(0)}%` }));
     } else {
       this._trendsSection.appendChild(create('div', {
         className: 'empty-state',

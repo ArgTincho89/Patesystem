@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { getMonthTransactions } = require('../utils/recurring');
+const { getIncomeBreakdown, getIncomePercentages, roundCents } = require('../utils/income');
 
 const router = express.Router();
 
@@ -19,6 +20,8 @@ router.get('/', (req, res) => {
   const monthTransactions = getMonthTransactions(transactions, month);
 
   let totalIngresos = 0;
+  let totalIngresosA = 0;
+  let totalIngresosB = 0;
   let totalGastos = 0;
   let totalReembolsos = 0;
   let totalFijos = 0;
@@ -45,6 +48,9 @@ router.get('/', (req, res) => {
   monthTransactions.forEach(t => {
     if (t.tipo === 'income') {
       totalIngresos += t.monto;
+      const breakdown = getIncomeBreakdown(t);
+      totalIngresosA += breakdown.a;
+      totalIngresosB += breakdown.b;
     } else if (t.tipo === 'expense') {
       totalGastos += t.monto;
       if (t.clasificacion === 'fijo') {
@@ -65,6 +71,7 @@ router.get('/', (req, res) => {
 
   const gastosNetos = totalGastos - totalReembolsos;
   const ahorro = totalIngresos - gastosNetos;
+  const incomePercentages = getIncomePercentages(totalIngresosA, totalIngresosB);
 
   Object.values(porCategoria).forEach(cat => {
     cat.neto = Math.round((cat.gastos - cat.reembolsos) * 100) / 100;
@@ -109,7 +116,17 @@ router.get('/', (req, res) => {
 
   res.json({
     month,
-    ingresos: Math.round(totalIngresos * 100) / 100,
+    ingresos: roundCents(totalIngresos),
+    ingresosA: roundCents(totalIngresosA),
+    ingresosB: roundCents(totalIngresosB),
+    porcentajeA: incomePercentages.porcentajeA,
+    porcentajeB: incomePercentages.porcentajeB,
+    ingresosDesglose: {
+      A: roundCents(totalIngresosA),
+      B: roundCents(totalIngresosB),
+      porcentajeA: incomePercentages.porcentajeA,
+      porcentajeB: incomePercentages.porcentajeB
+    },
     gastos: Math.round(totalGastos * 100) / 100,
     reembolsos: Math.round(totalReembolsos * 100) / 100,
     gastosNetos: Math.round(gastosNetos * 100) / 100,

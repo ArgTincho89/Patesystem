@@ -56,7 +56,17 @@ const TransactionForm = {
       categoryGroup.style.display = (selectedType === 'income') ? 'none' : 'block';
     }
     function updateClasifVisibility() {
-      clasifGroup.style.display = (selectedType === 'expense') ? 'block' : 'none';
+      clasifGroup.style.display = selectedType === 'income' || selectedType === 'expense' ? 'block' : 'none';
+      const validClassifications = selectedType === 'income' ? ['A', 'B', 'Mixto'] : ['fijo', 'variable'];
+      const currentClassification = validClassifications.includes(clasifSelect.value)
+        ? clasifSelect.value
+        : (selectedType === 'income' ? 'B' : 'variable');
+      clasifSelect.value = currentClassification;
+      Object.entries(classificationCheckboxes).forEach(([value, checkbox]) => {
+        checkbox.parentElement.style.display = validClassifications.includes(value) ? 'inline-flex' : 'none';
+        checkbox.checked = value === currentClassification;
+      });
+      incomeSplitGroup.style.display = selectedType === 'income' && currentClassification === 'Mixto' ? 'block' : 'none';
     }
     updateCategoryVisibility();
 
@@ -84,6 +94,16 @@ const TransactionForm = {
     amountGroup.appendChild(amountInput);
     form.appendChild(amountGroup);
 
+    const incomeSplitGroup = create('div', { className: 'form-group', style: { display: 'none' } });
+    incomeSplitGroup.appendChild(create('label', { textContent: 'Desglose Mixto' }));
+    const incomeSplitRow = create('div', { style: { display: 'flex', gap: '8px' } });
+    const amountAInput = create('input', { className: 'form-control', type: 'number', step: '0.01', min: '0', placeholder: 'A' });
+    const amountBInput = create('input', { className: 'form-control', type: 'number', step: '0.01', min: '0', placeholder: 'B' });
+    incomeSplitRow.appendChild(amountAInput);
+    incomeSplitRow.appendChild(amountBInput);
+    incomeSplitGroup.appendChild(incomeSplitRow);
+    form.appendChild(incomeSplitGroup);
+
     const dateGroup = create('div', { className: 'form-group' });
     dateGroup.appendChild(create('label', { textContent: 'Fecha' }));
     const dateInput = create('input', {
@@ -96,12 +116,40 @@ const TransactionForm = {
 
     const clasifGroup = create('div', { className: 'form-group' });
     clasifGroup.appendChild(create('label', { textContent: 'Clasificación' }));
-    const clasifSelect = create('select', { className: 'form-control' });
-    clasifSelect.appendChild(create('option', { value: 'variable', textContent: 'Variable' }));
-    clasifSelect.appendChild(create('option', { value: 'fijo', textContent: 'Fijo' }));
-    clasifSelect.value = transaction?.clasificacion || 'variable';
+    const clasifSelect = create('select', { className: 'form-control', style: { display: 'none' } });
+    const classificationCheckboxes = {};
+    [['A', 'A'], ['B', 'B'], ['Mixto', 'Mixto'], ['variable', 'Variable'], ['fijo', 'Fijo']].forEach(([value, label]) => {
+      clasifSelect.appendChild(create('option', { value, textContent: label }));
+    });
+    const classificationOptions = create('div', { className: 'classification-options', style: { display: 'flex', gap: '12px', flexWrap: 'wrap' } });
+    [['A', 'A'], ['B', 'B'], ['Mixto', 'Mixto'], ['variable', 'Variable'], ['fijo', 'Fijo']].forEach(([value, label]) => {
+      const optionLabel = create('label', { className: 'checkbox-label' });
+      const checkbox = create('input', { type: 'checkbox', className: 'form-checkbox' });
+      checkbox.checked = value === (selectedType === 'income' ? (transaction?.clasificacion || 'B') : (transaction?.clasificacion || 'variable'));
+      on(checkbox, 'change', () => {
+        if (checkbox.checked) {
+          Object.entries(classificationCheckboxes).forEach(([otherValue, otherCheckbox]) => {
+            if (otherValue !== value) otherCheckbox.checked = false;
+          });
+          clasifSelect.value = value;
+        } else if (!Object.values(classificationCheckboxes).some(input => input.checked)) {
+          checkbox.checked = true;
+        }
+        updateClasifVisibility();
+      });
+      classificationCheckboxes[value] = checkbox;
+      optionLabel.appendChild(checkbox);
+      optionLabel.appendChild(document.createTextNode(` ${label}`));
+      classificationOptions.appendChild(optionLabel);
+    });
+    clasifGroup.appendChild(classificationOptions);
     clasifGroup.appendChild(clasifSelect);
     form.appendChild(clasifGroup);
+    if (transaction?.clasificacion === 'Mixto') {
+      amountAInput.value = transaction.montoA ?? '';
+      amountBInput.value = transaction.montoB ?? '';
+    }
+    on(clasifSelect, 'change', updateClasifVisibility);
     updateClasifVisibility();
 
     const recurringGroup = create('div', { className: 'form-group recurring-section' });
@@ -118,6 +166,7 @@ const TransactionForm = {
     const freqSelect = create('select', { className: 'form-control' });
     freqSelect.appendChild(create('option', { value: 'monthly', textContent: 'Mensual' }));
     freqSelect.appendChild(create('option', { value: 'bimonthly', textContent: 'Bimensual' }));
+    freqSelect.appendChild(create('option', { value: 'quarterly', textContent: 'Trimestral' }));
     freqSelect.appendChild(create('option', { value: 'semiannual', textContent: 'Semestral' }));
     freqSelect.appendChild(create('option', { value: 'annual', textContent: 'Anual' }));
     freqSelectGroup.appendChild(freqSelect);
@@ -195,8 +244,13 @@ const TransactionForm = {
         fecha: dateInput.value
       };
 
-      if (selectedType === 'expense') {
+      if (selectedType === 'expense' || selectedType === 'income') {
         data.clasificacion = clasifSelect.value;
+      }
+
+      if (selectedType === 'income' && clasifSelect.value === 'Mixto') {
+        data.montoA = parseFloat(amountAInput.value);
+        data.montoB = parseFloat(amountBInput.value);
       }
 
       if (selectedType !== 'income') {
@@ -212,6 +266,9 @@ const TransactionForm = {
       }
 
       if (!data.monto || data.monto <= 0) return showToast('El monto debe ser positivo', 'error');
+      if (selectedType === 'income' && data.clasificacion === 'Mixto' && (!Number.isFinite(data.montoA) || !Number.isFinite(data.montoB) || Math.round((data.montoA + data.montoB) * 100) !== Math.round(data.monto * 100))) {
+        return showToast('Los importes A y B deben sumar el monto total', 'error');
+      }
 
       try {
         if (isEdit) {

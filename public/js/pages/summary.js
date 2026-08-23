@@ -40,6 +40,25 @@ const SummaryPage = {
     statsRow.appendChild(this.createStat('Ahorro', `${savingsSign}${formatearEuro(summary.ahorro)}`, savingsColor));
     content.appendChild(statsRow);
 
+    if (summary.ingresos > 0) {
+      const incomeCard = create('div', { className: 'chart-container' });
+      incomeCard.appendChild(create('div', { className: 'chart-title', textContent: 'Ingresos A vs B' }));
+      const wrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
+      const canvas = create('canvas', { className: 'chart-canvas' });
+      wrapper.appendChild(canvas);
+      incomeCard.appendChild(wrapper);
+      const legend = create('div', { className: 'fv-legend' });
+      [['A', summary.ingresosA, summary.porcentajeA, '#4ECDC4'], ['B', summary.ingresosB, summary.porcentajeB, '#FF6B6B']].forEach(([label, value, pct, color]) => {
+        legend.appendChild(create('div', { className: 'fv-legend-item', innerHTML: `<div class="category-badge"><span class="category-dot" style="background:${color}"></span>${label}: ${formatearEuro(value)}</div><div class="fv-legend-pct">${pct}%</div>` }));
+      });
+      incomeCard.appendChild(legend);
+      content.appendChild(incomeCard);
+      requestAnimationFrame(() => Charts.drawDonut(canvas, [
+        { value: summary.ingresosA, color: '#4ECDC4', label: 'A' },
+        { value: summary.ingresosB, color: '#FF6B6B', label: 'B' }
+      ], 200));
+    }
+
     if (goals && goals.length > 0) {
       goals.forEach(goal => {
         const goalCard = this.renderGoalProgress(goal, summary);

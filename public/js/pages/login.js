@@ -5,13 +5,20 @@ const LoginPage = {
     navbar.style.display = 'none';
     content.style.paddingBottom = 'var(--space-xl)';
 
-    let versionData = { version: '1.1.0' };
+    let versionData = { version: '1.10.0' };
     try {
       const res = await fetch('/version.json');
       versionData = await res.json();
     } catch {}
 
     const CHANGELOG = [
+      {
+        v: '1.10.0', date: '23/08/2026',
+        items: [
+          'Frecuencia recurrente trimestral',
+          'Clasificación de ingresos A, B y Mixto con desglose y evolución porcentual'
+        ]
+      },
       {
         v: '1.9.1', date: '04/08/2026',
         items: [

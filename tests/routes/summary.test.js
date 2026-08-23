@@ -62,6 +62,22 @@ describe('Summary Routes', () => {
       expect(res.body.ahorro).toBe(2465);
     });
 
+    it('should report income A/B breakdown and legacy income as B', async () => {
+      await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'A income', fecha: '2024-03-10', clasificacion: 'A' });
+      await agent.post('/api/transactions').send({ tipo: 'income', monto: 50, titulo: 'Mixed income', fecha: '2024-03-11', clasificacion: 'Mixto', montoA: 20, montoB: 30 });
+      const res = await agent.get('/api/summary?month=2024-03');
+      expect(res.body.ingresos).toBe(2650);
+      expect(res.body.ingresosA).toBe(120);
+      expect(res.body.ingresosB).toBe(2530);
+      expect(res.body.porcentajeA + res.body.porcentajeB).toBe(100);
+    });
+
+    it('should return zero income percentages without non-finite values', async () => {
+      const res = await agent.get('/api/summary?month=2024-12');
+      expect(res.body.porcentajeA).toBe(0);
+      expect(res.body.porcentajeB).toBe(0);
+    });
+
     it('should show negative savings when expenses exceed income', async () => {
       await agent.post('/api/transactions').send({
         tipo: 'expense', monto: 3000, titulo: 'Big expense', categoryId, fecha: '2024-04-10'

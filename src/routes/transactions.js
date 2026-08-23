@@ -1,6 +1,7 @@
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { generateRecurringInstances, getMonthTransactions } = require('../utils/recurring');
+const { roundCents } = require('../utils/income');
 
 const router = express.Router();
 
@@ -65,7 +66,7 @@ router.get('/recurring-total', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion } = req.body;
+  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion, montoA, montoB } = req.body;
 
   if (!tipo || !['expense', 'income', 'refund'].includes(tipo)) {
     return res.status(400).json({ error: 'Tipo inválido. Debe ser: expense, income o refund' });
@@ -79,11 +80,24 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Los gastos y reembolsos requieren una categoría' });
   }
 
-  if (recurrente && frecuencia && !['monthly', 'bimonthly', 'semiannual', 'annual'].includes(frecuencia)) {
-    return res.status(400).json({ error: 'Frecuencia inválida. Debe ser: monthly, bimonthly, semiannual o annual' });
+  if (recurrente && frecuencia && !['monthly', 'bimonthly', 'quarterly', 'semiannual', 'annual'].includes(frecuencia)) {
+    return res.status(400).json({ error: 'Frecuencia inválida. Debe ser: monthly, bimonthly, quarterly, semiannual o annual' });
   }
 
-  if (clasificacion && !['fijo', 'variable'].includes(clasificacion)) {
+  if (tipo === 'income') {
+    if (clasificacion && !['A', 'B', 'Mixto'].includes(clasificacion)) {
+      return res.status(400).json({ error: 'Clasificación de ingreso inválida. Debe ser: A, B o Mixto' });
+    }
+    if (montoA !== undefined || montoB !== undefined) {
+      if (clasificacion !== 'Mixto' || typeof montoA !== 'number' || typeof montoB !== 'number' || montoA < 0 || montoB < 0 || roundCents(montoA + montoB) !== roundCents(monto)) {
+        return res.status(400).json({ error: 'Los importes A y B deben ser positivos o cero y sumar el monto total' });
+      }
+    } else if (clasificacion === 'Mixto') {
+      return res.status(400).json({ error: 'La clasificación Mixto requiere importes A y B' });
+    }
+  } else if (montoA !== undefined || montoB !== undefined) {
+    return res.status(400).json({ error: 'Los importes A y B solo son válidos para ingresos' });
+  } else if (clasificacion && !['fijo', 'variable'].includes(clasificacion)) {
     return res.status(400).json({ error: 'Clasificación inválida. Debe ser: fijo o variable' });
   }
 
@@ -111,7 +125,9 @@ router.post('/', (req, res) => {
     recurrente: recurrente || false,
     frecuencia: recurrente ? (frecuencia || 'monthly') : null,
     fechaFin: recurrente ? (fechaFin || null) : null,
-    clasificacion: clasificacion || 'variable'
+    clasificacion: tipo === 'income' ? (clasificacion || null) : (clasificacion || 'variable'),
+    montoA: tipo === 'income' && clasificacion === 'Mixto' ? roundCents(montoA) : null,
+    montoB: tipo === 'income' && clasificacion === 'Mixto' ? roundCents(montoB) : null
   }, userId);
 
   res.status(201).json(transaction);
@@ -121,7 +137,7 @@ router.put('/:id', (req, res) => {
   const db = req.app.locals.db;
   const userId = req.session.userId;
   const { id } = req.params;
-  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion } = req.body;
+  const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion, montoA, montoB } = req.body;
 
   const transaction = db.findById('transactions', id, userId);
   if (!transaction) {
@@ -129,6 +145,15 @@ router.put('/:id', (req, res) => {
   }
 
   const updates = {};
+  const finalTipo = tipo !== undefined ? tipo : transaction.tipo;
+  if (montoA !== undefined || montoB !== undefined) {
+    if (finalTipo !== 'income') return res.status(400).json({ error: 'Los importes A y B solo son válidos para ingresos' });
+    const finalMonto = monto !== undefined ? monto : transaction.monto;
+    const finalClasificacion = clasificacion !== undefined ? clasificacion : transaction.clasificacion;
+    if (finalClasificacion !== 'Mixto' || typeof montoA !== 'number' || typeof montoB !== 'number' || montoA < 0 || montoB < 0 || roundCents(montoA + montoB) !== roundCents(finalMonto)) {
+      return res.status(400).json({ error: 'Los importes A y B deben ser positivos o cero y sumar el monto total' });
+    }
+  }
   if (tipo !== undefined) {
     if (!['expense', 'income', 'refund'].includes(tipo)) {
       return res.status(400).json({ error: 'Tipo inválido' });
@@ -149,20 +174,48 @@ router.put('/:id', (req, res) => {
     updates.frecuencia = null;
     updates.fechaFin = null;
   } else if (frecuencia !== undefined) {
+    if (frecuencia && !['monthly', 'bimonthly', 'quarterly', 'semiannual', 'annual'].includes(frecuencia)) {
+      return res.status(400).json({ error: 'Frecuencia inválida' });
+    }
     updates.frecuencia = frecuencia || 'monthly';
   }
   if (recurrente !== false && fechaFin !== undefined) {
     updates.fechaFin = fechaFin || null;
   }
   if (clasificacion !== undefined) {
-    if (!['fijo', 'variable'].includes(clasificacion)) {
+    const validClassifications = finalTipo === 'income' ? ['A', 'B', 'Mixto'] : ['fijo', 'variable'];
+    if (!validClassifications.includes(clasificacion)) {
       return res.status(400).json({ error: 'Clasificación inválida' });
     }
     updates.clasificacion = clasificacion;
   }
 
-  const finalTipo = updates.tipo || transaction.tipo;
   const finalCategoryId = updates.categoryId !== undefined ? updates.categoryId : transaction.categoryId;
+
+  if (finalTipo === 'income' && clasificacion === undefined && !['A', 'B', 'Mixto', null, undefined].includes(transaction.clasificacion)) {
+    updates.clasificacion = null;
+  }
+  if (finalTipo !== 'income' && transaction.tipo === 'income' && tipo !== undefined && clasificacion === undefined) {
+    updates.clasificacion = 'variable';
+    updates.montoA = null;
+    updates.montoB = null;
+  }
+  if (finalTipo === 'income' && clasificacion !== 'Mixto' && clasificacion !== undefined) {
+    updates.montoA = null;
+    updates.montoB = null;
+  }
+  if (finalTipo === 'income' && (clasificacion === 'Mixto' || (clasificacion === undefined && transaction.clasificacion === 'Mixto')) && (montoA === undefined || montoB === undefined)) {
+    if (clasificacion === 'Mixto' || monto !== undefined) {
+      return res.status(400).json({ error: 'La clasificación Mixto requiere importes A y B' });
+    }
+  }
+
+  if (finalTipo === 'income' && (clasificacion === 'Mixto' || (clasificacion === undefined && transaction.clasificacion === 'Mixto')) && montoA !== undefined && montoB !== undefined) {
+    updates.montoA = roundCents(montoA);
+    updates.montoB = roundCents(montoB);
+  } else if (finalTipo !== 'income' && (montoA !== undefined || montoB !== undefined)) {
+    return res.status(400).json({ error: 'Los importes A y B solo son válidos para ingresos' });
+  }
 
   if ((finalTipo === 'expense' || finalTipo === 'refund') && !finalCategoryId) {
     return res.status(400).json({ error: 'Los gastos y reembolsos requieren una categoría' });

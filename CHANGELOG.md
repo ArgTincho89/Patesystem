@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0] - 2026-08-23
+
+### Added
+- Frecuencia trimestral (`quarterly`) para transacciones recurrentes.
+- Clasificación de ingresos A, B y Mixto con validación de desglose.
+- Desglose A/B y porcentajes en resumen y tendencias.
+
 ## [1.5.2] - 2026-07-13
 
 ### Fixed

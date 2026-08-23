@@ -139,7 +139,7 @@ const HomePage = {
             const info = create('div', { className: 'transaction-info' });
             info.appendChild(create('div', { className: 'transaction-title', textContent: tx.titulo }));
 
-            const catName = tx.tipo === 'income' ? 'Ingreso' : (tx.tipo === 'refund' ? 'Reembolso' : (cat ? cat.nombre : 'Sin categoría'));
+             const catName = tx.tipo === 'income' ? `Ingreso${tx.clasificacion ? ` (${tx.clasificacion})` : ''}` : (tx.tipo === 'refund' ? 'Reembolso' : (cat ? cat.nombre : 'Sin categoría'));
             info.appendChild(create('div', { className: 'transaction-category', textContent: catName }));
 
             const sign = tx.tipo === 'expense' ? '-' : '+';

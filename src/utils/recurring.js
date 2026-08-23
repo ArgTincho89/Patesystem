@@ -21,6 +21,8 @@ function generateRecurringInstances(tx, month) {
     match = diffMonths >= 0;
   } else if (tx.frecuencia === 'bimonthly') {
     match = diffMonths >= 0 && diffMonths % 2 === 0;
+  } else if (tx.frecuencia === 'quarterly') {
+    match = diffMonths >= 0 && diffMonths % 3 === 0;
   } else if (tx.frecuencia === 'semiannual') {
     match = diffMonths >= 0 && diffMonths % 6 === 0;
   } else if (tx.frecuencia === 'annual') {

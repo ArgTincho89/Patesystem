@@ -167,6 +167,29 @@ describe('Transactions Routes', () => {
       expect(res.status).toBe(400);
     });
 
+    it('should create a quarterly recurring transaction', async () => {
+      const res = await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 50, titulo: 'Quarterly', categoryId,
+        fecha: '2024-01-10', recurrente: true, frecuencia: 'quarterly'
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.frecuencia).toBe('quarterly');
+    });
+
+    it('should validate mixed income splits and persist them', async () => {
+      const res = await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'Mixed', fecha: '2024-03-20', clasificacion: 'Mixto', montoA: 40, montoB: 60 });
+      expect(res.status).toBe(201);
+      expect(res.body.montoA).toBe(40);
+      expect(res.body.montoB).toBe(60);
+    });
+
+    it('should reject invalid income classifications and splits on non-income records', async () => {
+      const invalidClass = await agent.post('/api/transactions').send({ tipo: 'income', monto: 10, clasificacion: 'variable' });
+      const invalidSplit = await agent.post('/api/transactions').send({ tipo: 'expense', monto: 10, categoryId, montoA: 5, montoB: 5 });
+      expect(invalidClass.status).toBe(400);
+      expect(invalidSplit.status).toBe(400);
+    });
+
     it('should default frequency to monthly when recurrente is true', async () => {
       const res = await agent.post('/api/transactions').send({
         tipo: 'expense', monto: 50, titulo: 'Default Freq', categoryId,
@@ -294,6 +317,25 @@ describe('Transactions Routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.titulo).toBe('New');
       expect(res.body.monto).toBe(20);
+    });
+
+    it('should persist split amounts when updating an existing mixed income', async () => {
+      const createRes = await agent.post('/api/transactions').send({
+        tipo: 'income', monto: 100, titulo: 'Mixed Update', fecha: '2024-03-15',
+        clasificacion: 'Mixto', montoA: 40, montoB: 60
+      });
+
+      const updateRes = await agent.put(`/api/transactions/${createRes.body.id}`).send({
+        montoA: 25, montoB: 75
+      });
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.montoA).toBe(25);
+      expect(updateRes.body.montoB).toBe(75);
+
+      const getRes = await agent.get('/api/transactions');
+      const updated = getRes.body.find(transaction => transaction.id === createRes.body.id);
+      expect(updated.montoA).toBe(25);
+      expect(updated.montoB).toBe(75);
     });
 
     it('should return 404 for non-existent', async () => {

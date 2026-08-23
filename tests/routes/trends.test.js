@@ -100,6 +100,16 @@ describe('Trends Routes', () => {
       expect(res.body.monthlyData[0].ingresos).toBe(500);
     });
 
+    it('should include income A/B breakdown for every trend month', async () => {
+      await agent.post('/api/transactions').send({ tipo: 'income', monto: 100, titulo: 'A trend', fecha: '2024-01-10', clasificacion: 'A' });
+      const res = await agent.get('/api/trends?from=2024-01&to=2024-02');
+      expect(res.body.monthlyData[0].ingresosA).toBe(100);
+      expect(res.body.monthlyData[0].ingresosB).toBe(0);
+      expect(res.body.monthlyData[0].porcentajeA).toBe(100);
+      expect(res.body.monthlyData[1].porcentajeA).toBe(0);
+      expect(res.body.monthlyData[1].porcentajeB).toBe(0);
+    });
+
     it('should handle single month range', async () => {
       const res = await agent.get('/api/trends?from=2024-03&to=2024-03');
       expect(res.status).toBe(200);
