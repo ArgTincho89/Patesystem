@@ -13,7 +13,7 @@
     "test:e2e:ui": "npm run --prefix e2e ui",
     "test:e2e:install": "npm install --prefix e2e && npm run --prefix e2e install:browsers",
     "test:coverage:diff": "jest --changedSince=origin/master --coverage --forceExit --detectOpenHandles",
-    "prepare": "husky"
+    "prepare": "node -e \"const {execSync} = require('child_process'); try { execSync('husky', {stdio: 'inherit'}); } catch(e) { }\""
   },
   "keywords": [],
   "author": "",
