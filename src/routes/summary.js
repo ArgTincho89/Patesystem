@@ -116,6 +116,38 @@ router.get('/', (req, res) => {
     }
   });
 
+  const goals = db.findAll('goals', userId).filter(g => g.meses && g.meses.includes(month));
+  const metas = goals.map(g => {
+    let meta = 0;
+    if (g.modo === 'monto_fijo') {
+      meta = g.montoFijo || 0;
+    } else if (g.modo === 'porcentaje_salario') {
+      meta = roundCents((g.salarioEstimado || 0) * (g.porcentaje || 0) / 100);
+    } else if (g.modo === 'porcentaje_ingresos_dinamico') {
+      meta = roundCents(totalIngresos * (g.porcentaje || 0) / 100);
+    }
+
+    let progresoActual = 0;
+    if (g.tipo === 'ahorro_mensual') {
+      progresoActual = ahorro;
+    } else if (g.tipo === 'gasto_categoria') {
+      const cat = porCategoria[g.categoryId];
+      progresoActual = cat ? cat.neto : 0;
+    } else if (g.tipo === 'gasto_general') {
+      progresoActual = gastosNetos;
+    }
+
+    return {
+      id: g.id,
+      tipo: g.tipo,
+      modo: g.modo,
+      meta: Math.round(meta * 100) / 100,
+      progresoActual: Math.round(progresoActual * 100) / 100,
+      categoryId: g.categoryId || null,
+      categoryName: g.categoryName || null
+    };
+  });
+
   res.json({
     month,
     ingresos: roundCents(totalIngresos),
@@ -136,7 +168,8 @@ router.get('/', (req, res) => {
     ahorro: Math.round(ahorro * 100) / 100,
     fijos: Math.round(totalFijos * 100) / 100,
     variables: Math.round(totalVariables * 100) / 100,
-    porCategoria: parentsWithChildren
+    porCategoria: parentsWithChildren,
+    metas
   });
 });
 

@@ -65,6 +65,19 @@ router.get('/recurring-total', (req, res) => {
   });
 });
 
+router.get('/:id', (req, res) => {
+  const db = req.app.locals.db;
+  const userId = req.session.userId;
+  const { id } = req.params;
+
+  const transaction = db.findById('transactions', id, userId);
+  if (!transaction) {
+    return res.status(404).json({ error: 'Transacción no encontrada' });
+  }
+
+  res.json(transaction);
+});
+
 router.post('/', (req, res) => {
   const { tipo, monto, titulo, categoryId, fecha, recurrente, frecuencia, fechaFin, clasificacion, montoA, montoB, ivaPorcentaje } = req.body;
 

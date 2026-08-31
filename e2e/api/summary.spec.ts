@@ -181,11 +181,7 @@ test.describe('Summary API', () => {
     }
   });
 
-  test('resumen no expone metas; el frontend tiene los datos para calcularlas', async () => {
-    // GAP FUNCIONAL DOCUMENTADO: GET /api/summary no incluye `metas`.
-    // El frontend las calcula combinando /api/summary + /api/goals.
-    // Este test valida el contrato actual: ambos endpoints devuelven los datos
-    // necesarios para que el UI muestre el progreso de metas.
+  test('resumen con metas incluye progreso de metas', async () => {
     const ctx = await createApiContext(baseURL);
     try {
       await registerUser(ctx.api, ctx.user);
@@ -230,24 +226,26 @@ test.describe('Summary API', () => {
         },
       });
 
-      const summaryRes = await ctx.api.get(`/api/summary?month=${currentMonth()}`);
-      expect(summaryRes.status()).toBe(200);
-      const summary = await summaryRes.json();
+      const res = await ctx.api.get(`/api/summary?month=${currentMonth()}`);
+      expect(res.status()).toBe(200);
 
-      const goalsRes = await ctx.api.get(`/api/goals?month=${currentMonth()}`);
-      expect(goalsRes.status()).toBe(200);
-      const goals = await goalsRes.json();
-
+      const summary = await res.json();
       expect(summary.ahorro).toBe(2850);
       expect(summary.gastosNetos).toBe(150);
-      expect(summary.metas).toBeUndefined();
 
-      expect(goals.some((g: any) => g.tipo === 'ahorro_mensual' && g.montoFijo === 500)).toBe(true);
-      expect(goals.some((g: any) => g.tipo === 'gasto_categoria' && g.categoryId === category.id)).toBe(true);
+      expect(Array.isArray(summary.metas)).toBe(true);
+      expect(summary.metas.length).toBeGreaterThanOrEqual(2);
 
-      const categorySummary = summary.porCategoria.find((c: any) => c.categoryId === category.id);
-      expect(categorySummary).toBeDefined();
-      expect(categorySummary.neto).toBe(150);
+      const ahorroMeta = summary.metas.find((g: any) => g.tipo === 'ahorro_mensual');
+      expect(ahorroMeta).toBeDefined();
+      expect(ahorroMeta.progresoActual).toBe(2850);
+      expect(ahorroMeta.meta).toBe(500);
+
+      const categoriaMeta = summary.metas.find((g: any) => g.tipo === 'gasto_categoria');
+      expect(categoriaMeta).toBeDefined();
+      expect(categoriaMeta.progresoActual).toBe(150);
+      expect(categoriaMeta.meta).toBe(200);
+      expect(categoriaMeta.categoryId).toBe(category.id);
     } finally {
       await cleanupAccount(ctx.api, ctx.user);
       await ctx.api.dispose();

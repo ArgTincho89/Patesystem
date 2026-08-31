@@ -257,6 +257,26 @@ describe('Transactions Routes', () => {
     });
   });
 
+  describe('GET /api/transactions/:id', () => {
+    it('should return a transaction by id', async () => {
+      const createRes = await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 42, titulo: 'ById', categoryId, fecha: '2024-03-15'
+      });
+      const id = createRes.body.id;
+
+      const res = await agent.get(`/api/transactions/${id}`);
+      expect(res.status).toBe(200);
+      expect(res.body.id).toBe(id);
+      expect(res.body.titulo).toBe('ById');
+      expect(res.body.monto).toBe(42);
+    });
+
+    it('should return 404 for non-existent transaction', async () => {
+      const res = await agent.get('/api/transactions/nonexistent');
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe('GET /api/transactions', () => {
     it('should list transactions for a month', async () => {
       const res = await agent.get('/api/transactions?month=2024-03');

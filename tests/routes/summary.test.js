@@ -191,6 +191,38 @@ describe('Summary Routes', () => {
       expect(child1.neto).toBe(100);
       expect(child2.neto).toBe(50);
     });
+
+    it('should include goal progress in summary', async () => {
+      const goalCatRes = await agent.post('/api/categories').send({ nombre: 'GoalCat', color: '#00F' });
+
+      await agent.post('/api/goals').send({
+        tipo: 'ahorro_mensual', modo: 'monto_fijo', montoFijo: 500, meses: ['2024-11']
+      });
+      await agent.post('/api/goals').send({
+        tipo: 'gasto_categoria', modo: 'monto_fijo', montoFijo: 200,
+        categoryId: goalCatRes.body.id, categoryName: 'GoalCat', meses: ['2024-11']
+      });
+
+      await agent.post('/api/transactions').send({
+        tipo: 'income', monto: 3000, titulo: 'Salary', fecha: '2024-11-28'
+      });
+      await agent.post('/api/transactions').send({
+        tipo: 'expense', monto: 150, titulo: 'Goal expense', categoryId: goalCatRes.body.id, fecha: '2024-11-15'
+      });
+
+      const res = await agent.get('/api/summary?month=2024-11');
+      expect(Array.isArray(res.body.metas)).toBe(true);
+      expect(res.body.metas.length).toBe(2);
+
+      const ahorroMeta = res.body.metas.find(m => m.tipo === 'ahorro_mensual');
+      expect(ahorroMeta.meta).toBe(500);
+      expect(ahorroMeta.progresoActual).toBe(2850);
+
+      const catMeta = res.body.metas.find(m => m.tipo === 'gasto_categoria');
+      expect(catMeta.meta).toBe(200);
+      expect(catMeta.progresoActual).toBe(150);
+      expect(catMeta.categoryId).toBe(goalCatRes.body.id);
+    });
   });
 
   describe('GET /api/summary/burn-rate', () => {
