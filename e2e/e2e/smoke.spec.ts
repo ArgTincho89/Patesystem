@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
-import { RegisterPage } from '../pages/RegisterPage';
 import { HomePage } from '../pages/HomePage';
 import { SummaryPage } from '../pages/SummaryPage';
 import { ProfilePage } from '../pages/ProfilePage';
@@ -26,27 +25,6 @@ test.describe('Smoke UI', () => {
     await loginPage.expectVisible();
 
     expect(errors).toHaveLength(0);
-  });
-
-  // Skipeado: el flujo de registro+login por UI ya se cubre en register-login.spec.ts.
-  // Este test duplicado es inestable por un problema de visibilidad del formulario en smoke.
-  test.skip('E2E-SMOKE-02: Registro + login', async ({ page, request }) => {
-    const user = buildTestUser('smoke');
-    try {
-      const registerPage = new RegisterPage(page);
-      await registerPage.navigate();
-      await registerPage.register(user);
-      await registerPage.expectRegistered();
-    } finally {
-      try {
-        await request.post('/api/auth/login', {
-          data: { nombre: user.nombre, password: user.password },
-        });
-        await request.delete('/api/auth/account');
-      } catch {
-        // Best-effort cleanup.
-      }
-    }
   });
 
   test.describe('autenticado', () => {

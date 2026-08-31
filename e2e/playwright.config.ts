@@ -1,4 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as os from 'os';
+import * as path from 'path';
 
 export default defineConfig({
   testDir: __dirname,
@@ -14,6 +16,7 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    serviceWorkers: 'block',
   },
   webServer: {
     command: 'node ../src/server.js',
@@ -22,7 +25,7 @@ export default defineConfig({
     timeout: 120000,
     env: {
       E2E_PORT: '3001',
-      DATA_DIR: '.e2e-data',
+      DATA_DIR: path.join(os.tmpdir(), 'patesystem-e2e-data'),
       NODE_ENV: 'test',
     },
   },
