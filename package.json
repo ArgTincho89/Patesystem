@@ -11,7 +11,9 @@
     "test:e2e": "npm run --prefix e2e test",
     "test:e2e:report": "npm run --prefix e2e report",
     "test:e2e:ui": "npm run --prefix e2e ui",
-    "test:e2e:install": "npm install --prefix e2e && npm run --prefix e2e install:browsers"
+    "test:e2e:install": "npm install --prefix e2e && npm run --prefix e2e install:browsers",
+    "test:coverage:diff": "jest --changedSince=origin/master --coverage --forceExit --detectOpenHandles",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +30,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
     "supertest": "^6.3.4"
   }
