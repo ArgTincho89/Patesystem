@@ -138,6 +138,14 @@ const ProfilePage = {
       }
     });
     content.appendChild(logoutBtn);
+
+    const deleteAccountBtn = create('button', {
+      className: 'btn btn-danger btn-full',
+      textContent: 'Eliminar mi cuenta',
+      style: { marginTop: '12px', background: 'var(--danger)' }
+    });
+    on(deleteAccountBtn, 'click', () => this.showDeleteAccountModal());
+    content.appendChild(deleteAccountBtn);
   },
 
   showChangeEmailModal() {
@@ -210,5 +218,55 @@ const ProfilePage = {
     });
 
     Modal.show('Cambiar contraseña', form, { footer });
+  },
+
+  showDeleteAccountModal() {
+    const form = create('div');
+    form.appendChild(create('p', {
+      textContent: 'Esta acción es irreversible. Se eliminarán tu cuenta y todos tus datos (transacciones, categorías y metas).'
+    }));
+
+    const confirmGroup = create('div', { className: 'form-group' });
+    confirmGroup.appendChild(create('label', {
+      textContent: 'Escribí ELIMINAR para confirmar'
+    }));
+    const confirmInput = create('input', {
+      className: 'form-control',
+      type: 'text',
+      id: 'delete-account-confirm',
+      placeholder: 'ELIMINAR'
+    });
+    confirmGroup.appendChild(confirmInput);
+    form.appendChild(confirmGroup);
+
+    const footer = create('div', { style: { display: 'flex', gap: '8px' } });
+    footer.appendChild(create('button', {
+      className: 'btn btn-ghost',
+      textContent: 'Cancelar',
+      onClick: () => Modal.hide()
+    }));
+    const confirmBtn = create('button', {
+      className: 'btn btn-danger',
+      textContent: 'Eliminar mi cuenta'
+    });
+    footer.appendChild(confirmBtn);
+
+    on(confirmBtn, 'click', async () => {
+      const value = $('#delete-account-confirm').value.trim();
+      if (value !== 'ELIMINAR') {
+        return showToast('Escribí ELIMINAR para confirmar', 'error');
+      }
+      try {
+        await API.delete('/auth/account');
+        Modal.hide();
+        App.user = null;
+        showToast('Cuenta eliminada');
+        Router.navigate('/login');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+
+    Modal.show('Eliminar mi cuenta', form, { footer });
   }
 };

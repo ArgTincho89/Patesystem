@@ -146,6 +146,37 @@ class JsonDB {
   updateUser(id, updates) {
     return this.update('users', id, updates);
   }
+
+  /**
+   * Deletes a user and all of their data.
+   * Removes the user row from users.json and the entire per-user data
+   * directory (<dataDir>/<id>). Returns true if the user existed.
+   */
+  deleteUserById(id) {
+    const users = this._readCollection('users');
+    const index = users.findIndex(u => u.id === id);
+    if (index === -1) {
+      return false;
+    }
+
+    users.splice(index, 1);
+    this._writeCollection('users', undefined, users);
+
+    this._invalidateCache('users', undefined);
+
+    // Remove the user's data directory (categories, transactions, goals, ...).
+    const userDir = path.join(this.dataDir, id);
+    try {
+      if (fs.existsSync(userDir)) {
+        fs.rmSync(userDir, { recursive: true, force: true });
+      }
+    } catch (err) {
+      console.error('[jsondb] error removing user dir', userDir, err.message);
+    }
+
+    this._cache = {};
+    return true;
+  }
 }
 
 module.exports = JsonDB;

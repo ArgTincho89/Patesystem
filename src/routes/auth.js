@@ -304,4 +304,27 @@ router.delete('/photo', (req, res) => {
   res.json({ ok: true });
 });
 
+router.delete('/account', (req, res) => {
+  if (!req.session || !req.session.userId) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+
+  const db = req.app.locals.db;
+  const userId = req.session.userId;
+  const user = db.findUserById(userId);
+  if (!user) {
+    return res.status(401).json({ error: 'Usuario no encontrado' });
+  }
+
+  db.deleteUserById(userId);
+
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).json({ error: 'Error al cerrar sesión' });
+    }
+    res.clearCookie('connect.sid');
+    res.json({ ok: true });
+  });
+});
+
 module.exports = router;
