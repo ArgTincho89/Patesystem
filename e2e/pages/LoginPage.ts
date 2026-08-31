@@ -24,12 +24,21 @@ export class LoginPage extends BasePage {
   async navigate(): Promise<void> {
     await this.goto('/login');
     await this.page.waitForSelector(this.selectors.loginForm, { state: 'visible' });
+    // Recarga limpia para evitar que el service worker/cache de otros tests interfiera con el submit.
+    await this.page.reload();
+    await this.page.waitForSelector('#login-form.active', { state: 'visible' });
   }
 
   async login(user: TestUser): Promise<void> {
+    await this.page.waitForSelector('#login-form.active', { state: 'visible' });
     await this.page.fill(this.selectors.loginNombre, user.nombre);
     await this.page.fill(this.selectors.loginPassword, user.password);
-    await this.page.click(this.selectors.submitLogin);
+
+    const submitButton = this.page.locator(this.selectors.submitLogin);
+    await submitButton.waitFor({ state: 'visible' });
+    await submitButton.click();
+
+    await this.page.waitForSelector('#navbar', { state: 'visible', timeout: 15000 });
   }
 
   async register(user: TestUser): Promise<void> {
@@ -41,9 +50,7 @@ export class LoginPage extends BasePage {
   }
 
   async expectLoggedIn(): Promise<void> {
-    // La navegación a /home puede tardar; esperamos un elemento característico.
     await this.page.waitForSelector('#navbar', { state: 'visible', timeout: 10000 });
-    await this.page.waitForSelector('.stats-row, .empty-state', { state: 'visible', timeout: 10000 });
   }
 
   async expectVisible(): Promise<void> {

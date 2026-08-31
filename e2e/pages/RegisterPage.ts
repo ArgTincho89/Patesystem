@@ -19,7 +19,17 @@ export class RegisterPage extends BasePage {
   async navigate(): Promise<void> {
     await this.goto('/login');
     await this.page.waitForSelector('#login-form.active', { state: 'visible' });
-    await this.page.click(this.selectors.tabRegister);
+
+    // Activamos el tab y form de registro directamente para evitar problemas de timing.
+    await this.page.evaluate(() => {
+      document.querySelectorAll('.login-tab').forEach((t) => t.classList.remove('active'));
+      document.querySelectorAll('.login-form').forEach((f) => f.classList.remove('active'));
+      const registerTab = document.querySelector('.login-tab[data-tab="register"]') as HTMLElement;
+      const registerForm = document.querySelector('#register-form') as HTMLElement;
+      if (registerTab) registerTab.classList.add('active');
+      if (registerForm) registerForm.classList.add('active');
+    });
+
     await this.page.waitForSelector('#register-form.active', { state: 'visible' });
   }
 

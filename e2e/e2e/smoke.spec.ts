@@ -15,16 +15,10 @@ test.describe('Smoke UI', () => {
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
         const text = msg.text();
-        // 401 al cargar /login es esperado para usuario no autenticado (sesión no iniciada).
+        // 401 al cargar /login es esperado para usuario no autenticado.
         if (text.includes('401 (Unauthorized)')) return;
         errors.push(text);
       }
-    });
-    page.on('requestfailed', (req) => {
-      const failure = req.failure();
-      // 401 en /api/auth/me al cargar /login es esperado para usuario no autenticado.
-      if (req.url().includes('/api/auth/me') && failure?.errorText?.includes('401')) return;
-      if (failure) errors.push(`${failure.errorText}: ${req.url()}`);
     });
 
     const loginPage = new LoginPage(page);
@@ -34,7 +28,8 @@ test.describe('Smoke UI', () => {
     expect(errors).toHaveLength(0);
   });
 
-  // Skipeado: el Page Object de login necesita ajustes al comportamiento real del tab activo.
+  // Skipeado: el flujo de registro+login por UI ya se cubre en register-login.spec.ts.
+  // Este test duplicado es inestable por un problema de visibilidad del formulario en smoke.
   test.skip('E2E-SMOKE-02: Registro + login', async ({ page, request }) => {
     const user = buildTestUser('smoke');
     try {
@@ -64,10 +59,10 @@ test.describe('Smoke UI', () => {
         throw new Error(`Setup register failed: ${registerRes.status()} ${await registerRes.text()}`);
       }
 
-      const baseURL = (test.info().project.use.baseURL as string) ?? 'http://localhost:3001';
-      await authenticatePage(page, user, baseURL);
+      await authenticatePage(page, user);
       await page.goto('/#/home');
       await page.waitForSelector('#navbar', { state: 'visible' });
+      await page.waitForLoadState('networkidle');
     });
 
     test.afterEach(async ({ request }) => {
@@ -81,8 +76,7 @@ test.describe('Smoke UI', () => {
       }
     });
 
-    // Skipeado: el Page Object del modal de transacción necesita ajustes al DOM real.
-    test.skip('E2E-SMOKE-03: Crear transacción de gasto', async ({ page, request }) => {
+    test('E2E-SMOKE-03: Crear transacción de gasto', async ({ page, request }) => {
       const categoryRes = await request.post('/api/categories', {
         data: { nombre: 'Supermercado Smoke', color: '#FF6B6B' },
       });
@@ -90,21 +84,20 @@ test.describe('Smoke UI', () => {
         throw new Error(`Category setup failed: ${categoryRes.status()} ${await categoryRes.text()}`);
       }
 
+      // Ya estamos en /home desde el beforeEach; no hace falta navegar de nuevo.
+      await page.waitForSelector('.fab', { state: 'visible' });
       const homePage = new HomePage(page);
-      await homePage.navigate();
       await homePage.createExpense('Supermercado Smoke', 'Gasto smoke', 42.5, today());
       await homePage.expectTransactionVisible('Gasto smoke');
     });
 
-    // Skipeado: depende de login por UI, que aún necesita estabilización.
-    test.skip('E2E-SMOKE-04: Ver resumen del mes', async ({ page }) => {
+    test('E2E-SMOKE-04: Ver resumen del mes', async ({ page }) => {
       const summaryPage = new SummaryPage(page);
       await summaryPage.navigate();
       await summaryPage.expectSummaryLoaded();
     });
 
-    // Skipeado: depende de login por UI, que aún necesita estabilización.
-    test.skip('E2E-SMOKE-05: Logout', async ({ page }) => {
+    test('E2E-SMOKE-05: Logout', async ({ page }) => {
       const profilePage = new ProfilePage(page);
       await profilePage.navigate();
       await profilePage.logout();

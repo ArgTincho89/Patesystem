@@ -36,8 +36,20 @@ export class HomePage extends BasePage {
   }
 
   async openNewTransaction(): Promise<void> {
-    await this.page.locator(this.selectors.fab).click();
-    await expect(this.page.locator(this.selectors.modalTitle)).toContainText('Nueva transacción');
+    const fab = this.page.locator(this.selectors.fab);
+    await fab.waitFor({ state: 'visible' });
+
+    // Reintento: a veces el FAB aparece antes de que su listener esté activo.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await fab.click();
+      try {
+        await expect(this.page.locator(this.selectors.modalTitle)).toContainText('Nueva transacción', { timeout: 2000 });
+        return;
+      } catch {
+        if (attempt === 2) throw new Error('El modal de nueva transacción no se abrió tras hacer clic en el FAB');
+        await this.page.waitForTimeout(300);
+      }
+    }
   }
 
   async createExpense(categoryName: string, titulo: string, monto: number, fecha?: string): Promise<void> {
@@ -74,7 +86,7 @@ export class HomePage extends BasePage {
     }
 
     // Guardar
-    await modal.locator('button[type="submit"]').click();
+    await modal.locator('button.btn-primary:has-text("Guardar")').click();
 
     // Esperar a que el modal desaparezca.
     await this.page.waitForSelector(this.selectors.modalOverlay, { state: 'hidden', timeout: 10000 });

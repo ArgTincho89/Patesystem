@@ -4,9 +4,7 @@ import { createUiUser, cleanupUiUser } from '../fixtures/uiHelpers';
 
 const baseURL = process.env.E2E_BASE_URL || `http://localhost:${process.env.E2E_PORT || 3001}`;
 
-// Skipeado: el Page Object de login necesita ajustes al comportamiento real del tab activo.
-// Reactivar cuando LoginPage.login() sea estable con la UI actual.
-test.skip('E2E-S02: Registro + login', async ({ page }) => {
+test('E2E-S02: Registro + login', async ({ page }) => {
   const { user, api } = await createUiUser(baseURL);
   try {
     const loginPage = new LoginPage(page);
