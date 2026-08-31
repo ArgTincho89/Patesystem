@@ -53,7 +53,8 @@ BeforeAll({ timeout: 120000 }, async function () {
     }
   }
 
-  browser = await chromium.launch({ headless: true });
+  const headless = process.env.HEADLESS !== 'false';
+  browser = await chromium.launch({ headless });
 });
 
 AfterAll(async function () {
