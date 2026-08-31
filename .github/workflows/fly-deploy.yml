@@ -5,14 +5,10 @@ on:
     branches: [master]
   workflow_dispatch:
 
-env:
-  # ── Configure your PatesiTests repo here ──
-  PATESI_TESTS_REPO: ${{ github.repository_owner }}/PatesiTests
-  PATESI_TESTS_REF: main
-
 jobs:
   # ════════════════════════════════════════════
   # 1. Unit tests (Jest)
+  #    Quality gate: nothing merges/deploys if backend logic regresses.
   # ════════════════════════════════════════════
   unit-tests:
     runs-on: ubuntu-latest
@@ -32,7 +28,12 @@ jobs:
         run: npm test
 
   # ════════════════════════════════════════════
-  # 2. E2E + API tests (Playwright)
+  # 2. End-to-end tests (Playwright + Cucumber, in-repo)
+  #    Quality gate: the full user lifecycle (register → manage →
+  #    summary → delete) plus auth validation must pass against a real,
+  #    isolated server instance before anything deploys.
+  #    The E2E suite lives in ./e2e and boots its own server on E2E_PORT
+  #    with an isolated DATA_DIR, so it never touches prod/dev data.
   # ════════════════════════════════════════════
   e2e-tests:
     needs: unit-tests
@@ -49,46 +50,43 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install PateSystem dependencies
+      - name: Install backend dependencies
         run: npm ci
 
-      - name: Checkout PatesiTests
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ env.PATESI_TESTS_REPO }}
-          path: PatesiTests
-          ref: ${{ env.PATESI_TESTS_REF }}
-          token: ${{ secrets.PATESI_TESTS_TOKEN }}
-
-      - name: Install PatesiTests dependencies
-        working-directory: PatesiTests
+      - name: Install E2E dependencies
+        working-directory: e2e
         run: npm ci
 
-      - name: Install Playwright browsers
-        working-directory: PatesiTests
+      - name: Install Playwright browser (Chromium)
+        working-directory: e2e
         run: npx playwright install --with-deps chromium
 
-      - name: Start PateSystem
+      - name: Start isolated E2E server
+        working-directory: e2e
         run: |
-          npm run dev &
-          npx wait-on http://localhost:3000/health --timeout 30000
+          npm run server &
+          npx --yes wait-on http://localhost:3001/ --timeout 30000
 
-      - name: Run Playwright tests
-        working-directory: PatesiTests
-        run: npx playwright test --project=setup --project=chromium --project=data-consistency --project=api-tests
+      - name: Run E2E suite
+        working-directory: e2e
+        run: npx cross-env E2E_PORT=3001 cucumber-js
         env:
-          BASE_URL: http://localhost:3000
+          E2E_PORT: 3001
 
-      - name: Upload Playwright report
+      - name: Generate HTML report
+        working-directory: e2e
+        run: npm run report
+
+      - name: Upload E2E report
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
-          path: PatesiTests/playwright-report/
+          name: e2e-cucumber-report
+          path: e2e/reports/
           retention-days: 14
 
   # ════════════════════════════════════════════
-  # 3. Deploy to Fly.io (only if ALL tests pass)
+  # 3. Deploy to Fly.io (only if ALL quality gates pass)
   # ════════════════════════════════════════════
   deploy:
     needs: [unit-tests, e2e-tests]
