@@ -6,3 +6,5 @@ coverage/
 dist/
 .DS_Store
 Thumbs.db
+.e2e-data/
+.atl/
