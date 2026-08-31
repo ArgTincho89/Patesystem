@@ -8,3 +8,7 @@ dist/
 Thumbs.db
 .e2e-data/
 .atl/
+e2e/node_modules/
+e2e/.e2e-data/
+e2e/reports/
+e2e/package-lock.json

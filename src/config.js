@@ -1,7 +1,7 @@
 const path = require('path');
 
 const config = {
-  port: parseInt(process.env.PORT, 10) || 3000,
+  port: parseInt(process.env.E2E_PORT || process.env.PORT, 10) || 3000,
   sessionSecret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
   appUrl: process.env.APP_URL || 'http://localhost:3000',
   dataDir: process.env.DATA_DIR || path.join(__dirname, '..', 'data'),

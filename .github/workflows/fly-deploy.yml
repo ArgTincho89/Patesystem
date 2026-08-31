@@ -28,10 +28,10 @@ jobs:
         run: npm test
 
   # ════════════════════════════════════════════
-  # 2. End-to-end tests (Playwright + Cucumber, in-repo)
-  #    Quality gate: the full user lifecycle (register → manage →
-  #    summary → delete) plus auth validation must pass against a real,
-  #    isolated server instance before anything deploys.
+  # 2. End-to-end tests (Playwright + TypeScript, in-repo)
+  #    Quality gate: auth, transactions, summary, goals, categories
+  #    and a UI health-check must pass against a real, isolated server
+  #    instance before anything deploys.
   #    The E2E suite lives in ./e2e and boots its own server on E2E_PORT
   #    with an isolated DATA_DIR, so it never touches prod/dev data.
   # ════════════════════════════════════════════
@@ -61,38 +61,49 @@ jobs:
         working-directory: e2e
         run: npx playwright install --with-deps chromium
 
-      - name: Start isolated E2E server
-        working-directory: e2e
-        run: |
-          npm run server &
-          npx --yes wait-on http://localhost:3001/ --timeout 30000
-
       - name: Run E2E suite
-        working-directory: e2e
-        run: npx cross-env E2E_PORT=3001 cucumber-js
-        env:
-          E2E_PORT: 3001
+        run: npm run test:e2e
 
-      - name: Generate HTML report
-        working-directory: e2e
-        run: npm run report
+      - name: Read app version
+        id: version
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
 
       - name: Upload E2E report
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: e2e-cucumber-report
+          name: E2E Tests v${{ steps.version.outputs.version }}
           path: e2e/reports/
           retention-days: 14
 
   # ════════════════════════════════════════════
-  # 3. Deploy to Fly.io (only if ALL quality gates pass)
+  # 3. Bump version and deploy to Fly.io
+  #    (only if ALL quality gates pass)
   # ════════════════════════════════════════════
   deploy:
     needs: [unit-tests, e2e-tests]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Bump version
+        id: bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          npm version patch -m "chore(release): bump v%s [skip ci]"
+          echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+          git push
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
