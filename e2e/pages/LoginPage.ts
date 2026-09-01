@@ -56,4 +56,18 @@ export class LoginPage extends BasePage {
   async expectVisible(): Promise<void> {
     await expect(this.page.locator(this.selectors.loginForm)).toBeVisible();
   }
+
+  async attemptLogin(user: TestUser): Promise<void> {
+    await this.page.waitForSelector('#login-form.active', { state: 'visible' });
+    await this.page.fill(this.selectors.loginNombre, user.nombre);
+    await this.page.fill(this.selectors.loginPassword, user.password);
+    await this.page.click(this.selectors.submitLogin);
+  }
+
+  async attemptLoginWithPassword(nombre: string, password: string): Promise<void> {
+    await this.page.waitForSelector('#login-form.active', { state: 'visible' });
+    await this.page.fill(this.selectors.loginNombre, nombre);
+    await this.page.fill(this.selectors.loginPassword, password);
+    await this.page.click(this.selectors.submitLogin);
+  }
 }

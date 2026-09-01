@@ -40,6 +40,7 @@ npm test              # Toda la suite Cucumber
 npm run test:e2e      # Toda la suite Cucumber
 npm run test:api      # Solo escenarios taggeados @api
 npm run test:ui       # Solo escenarios taggeados @ui
+npm run test -- --tags "@regression"  # Solo escenarios de cobertura ampliada
 npm run report        # Abrir reporte HTML de Cucumber
 npm run ui            # No aplica; Cucumber no tiene modo UI interactivo
 npm run install:browsers
@@ -99,6 +100,8 @@ npm run report
   - `@api`: escenarios de API.
   - `@ui`: escenarios de interfaz de usuario.
   - `@smoke`: smoke tests críticos.
+  - `@regression`: cobertura funcional ampliada (todos los nuevos escenarios UI).
+  - `@auth`, `@category`, `@transaction`, `@home`, `@summary`, `@statistics`, `@goals`, `@profile`: agrupan escenarios por funcionalidad.
 
 ## Mapeo entre escenarios Gherkin y specs Playwright originales
 
@@ -115,6 +118,14 @@ npm run report
 | `e2e/create-expense.spec.ts`               | `features/ui/create-expense.feature`          | 1          |
 | `e2e/view-summary.spec.ts`                 | `features/ui/view-summary.feature`            | 1          |
 | `e2e/logout.spec.ts`                       | `features/ui/logout.feature`                  | 1          |
-| **Total**                                  |                                               | **41**     |
+| Nuevos — auth UI                           | `features/ui/auth-lifecycle.feature`          | 3          |
+| Nuevos — categorías UI                     | `features/ui/categories.feature`              | 3          |
+| Nuevos — transacciones UI                  | `features/ui/transactions.feature`            | 9          |
+| Nuevos — dashboard home UI                 | `features/ui/home-dashboard.feature`          | 3          |
+| Nuevos — resumen UI                        | `features/ui/summary.feature`                 | 5          |
+| Nuevos — estadísticas UI                   | `features/ui/statistics.feature`              | 3          |
+| Nuevos — metas UI                          | `features/ui/goals.feature`                   | 3          |
+| Nuevos — perfil UI                         | `features/ui/profile.feature`                 | 3          |
+| **Total**                                  |                                               | **73**     |
 
 Los specs originales fueron migrados a features y retirados del árbol activo. El historial permanece disponible en Git.

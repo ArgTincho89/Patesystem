@@ -1,4 +1,6 @@
-import { BeforeAll, AfterAll, Before, After, ITestCaseHookParameter } from '@cucumber/cucumber';
+import { BeforeAll, AfterAll, Before, After, ITestCaseHookParameter, setDefaultTimeout } from '@cucumber/cucumber';
+
+setDefaultTimeout(20000);
 import { chromium, request, devices } from '@playwright/test';
 import { spawn } from 'child_process';
 import * as http from 'http';

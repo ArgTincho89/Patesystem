@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { Page, expect, Locator } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class ProfilePage extends BasePage {
@@ -9,6 +9,7 @@ export class ProfilePage extends BasePage {
     confirmInput: '#delete-account-confirm',
     confirmDeleteButton: '.modal-overlay button:has-text("Eliminar mi cuenta")',
     loginForm: '#login-form',
+    emailValue: '.profile-info-value',
   };
 
   constructor(page: Page) {
@@ -21,7 +22,10 @@ export class ProfilePage extends BasePage {
   }
 
   async logout(): Promise<void> {
-    await this.page.click(this.selectors.logoutButton);
+    const logoutButton = this.page.locator(this.selectors.logoutButton);
+    await logoutButton.waitFor({ state: 'visible' });
+    await logoutButton.click();
+    await this.waitForUrlHash('/login');
     await this.page.waitForSelector(this.selectors.loginForm, { state: 'visible' });
   }
 
@@ -34,5 +38,33 @@ export class ProfilePage extends BasePage {
 
   async expectLoggedOut(): Promise<void> {
     await expect(this.page.locator(this.selectors.loginForm)).toBeVisible();
+  }
+
+  async getEmail(): Promise<string> {
+    const emailRow = this.page.locator('.profile-info-row').filter({ hasText: 'Email' });
+    return emailRow.locator(this.selectors.emailValue).innerText();
+  }
+
+  private get modal(): Locator {
+    return this.page.locator('.modal-overlay');
+  }
+
+  async changeEmail(newEmail: string, password: string): Promise<void> {
+    await this.page.click('button:has-text("Cambiar email")');
+    await expect(this.modal).toBeVisible();
+    await this.modal.locator('#new-email').fill(newEmail);
+    await this.modal.locator('#confirm-pw-email').fill(password);
+    await this.modal.locator('button.btn-primary:has-text("Guardar")').click();
+    await this.page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await this.page.click('button:has-text("Cambiar contraseña")');
+    await expect(this.modal).toBeVisible();
+    await this.modal.locator('#current-pw').fill(currentPassword);
+    await this.modal.locator('#new-pw').fill(newPassword);
+    await this.modal.locator('#repeat-pw').fill(newPassword);
+    await this.modal.locator('button.btn-primary:has-text("Guardar")').click();
+    await this.page.waitForSelector('.modal-overlay', { state: 'hidden', timeout: 10000 });
   }
 }

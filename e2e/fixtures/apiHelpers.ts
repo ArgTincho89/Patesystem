@@ -57,3 +57,62 @@ export async function cleanupAccount(api: APIRequestContext, user: TestUser) {
     // Best-effort cleanup.
   }
 }
+
+export interface CreateCategoryInput {
+  nombre: string;
+  color?: string;
+  parentId?: string;
+}
+
+export async function createCategory(api: APIRequestContext, input: CreateCategoryInput) {
+  const res = await api.post('/api/categories', { data: input });
+  if (res.status() !== 201) {
+    const body = await res.text();
+    throw new Error(`Create category failed: ${res.status()} ${body}`);
+  }
+  return res.json();
+}
+
+export interface CreateTransactionInput {
+  tipo: 'expense' | 'income' | 'refund';
+  titulo?: string;
+  monto: number;
+  categoryId?: string;
+  fecha?: string;
+  clasificacion?: 'fijo' | 'variable' | 'A' | 'B' | 'Mixto';
+  montoA?: number;
+  montoB?: number;
+  ivaPorcentaje?: number;
+  recurrente?: boolean;
+  frecuencia?: 'monthly' | 'bimonthly' | 'quarterly' | 'semiannual' | 'annual';
+  fechaFin?: string;
+}
+
+export async function createTransaction(api: APIRequestContext, input: CreateTransactionInput) {
+  const res = await api.post('/api/transactions', { data: input });
+  if (res.status() !== 201) {
+    const body = await res.text();
+    throw new Error(`Create transaction failed: ${res.status()} ${body}`);
+  }
+  return res.json();
+}
+
+export interface CreateGoalInput {
+  tipo: 'ahorro_mensual' | 'gasto_categoria' | 'gasto_general';
+  modo: 'monto_fijo' | 'porcentaje_salario' | 'porcentaje_ingresos_dinamico';
+  montoFijo?: number;
+  porcentaje?: number;
+  salarioEstimado?: number;
+  categoryId?: string;
+  categoryName?: string;
+  meses: string[];
+}
+
+export async function createGoal(api: APIRequestContext, input: CreateGoalInput) {
+  const res = await api.post('/api/goals', { data: input });
+  if (res.status() !== 201) {
+    const body = await res.text();
+    throw new Error(`Create goal failed: ${res.status()} ${body}`);
+  }
+  return res.json();
+}

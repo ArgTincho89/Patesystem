@@ -1,0 +1,60 @@
+# language: es
+@ui @summary @regression
+Característica: Resumen mensual
+  Para entender mi situación financiera
+  Como usuario autenticado
+  Quiero ver IVA, distribuciones, desglose y metas en el resumen
+
+  Escenario: IVA acumulado correcto
+    Dado que existe un usuario autenticado en el navegador
+    Cuando registro por API un ingreso A de 1000 con IVA 21%
+    Y registro por API un ingreso Mixto de 1000 con A 700, B 300 e IVA 10%
+    Y registro por API un ingreso B de 500
+    Y abro la página de resumen
+    Entonces el badge de IVA acumulado muestra "280€"
+    Y no hay errores críticos en la consola
+
+  Escenario: Distribución Fijo vs Variable
+    Dado que existe un usuario autenticado en el navegador
+    Y que existe una categoría "Fijos UI" por API
+    Y que existe una categoría "Variables UI" por API
+    Cuando registro por API un gasto fijo de 600 en "Fijos UI"
+    Y registro por API un gasto variable de 400 en "Variables UI"
+    Y abro la página de resumen
+    Entonces veo el gráfico en el resumen "Fijo vs Variable"
+    Y la leyenda Fijo vs Variable contiene "Fijo: 600€"
+    Y la leyenda Fijo vs Variable contiene "Variable: 400€"
+    Y no hay errores críticos en la consola
+
+  Escenario: Ingresos A vs B
+    Dado que existe un usuario autenticado en el navegador
+    Cuando registro por API un ingreso A de 700
+    Y registro por API un ingreso B de 300
+    Y abro la página de resumen
+    Entonces veo el gráfico en el resumen "Ingresos A vs B"
+    Y la leyenda A vs B contiene "A: 700€"
+    Y la leyenda A vs B contiene "B: 300€"
+    Y no hay errores críticos en la consola
+
+  Escenario: Barras de desglose por categoría
+    Dado que existe un usuario autenticado en el navegador
+    Y que existe una categoría "Transporte UI" por API
+    Y que existe una categoría "Ocio UI" por API
+    Cuando registro por API un gasto variable de 250 en "Transporte UI"
+    Y registro por API un gasto variable de 150 en "Ocio UI"
+    Y abro la página de resumen
+    Entonces el desglose muestra la barra "Transporte UI" con "250€"
+    Y el desglose muestra la barra "Ocio UI" con "150€"
+    Y no hay errores críticos en la consola
+
+  Escenario: Progreso de metas
+    Dado que existe un usuario autenticado en el navegador
+    Y que existe una categoría "Meta UI" por API
+    Y que existe una meta de ahorro de 500€ para el mes actual por API
+    Y que existe un límite de gasto de 300€ para "Meta UI" por API
+    Cuando registro por API un ingreso A de 1000
+    Y registro por API un gasto variable de 150 en "Meta UI"
+    Y abro la página de resumen
+    Entonces veo la tarjeta de progreso "Meta de ahorro"
+    Y veo la tarjeta de progreso "Meta: Límite de gastos por categoría: Meta UI"
+    Y no hay errores críticos en la consola
