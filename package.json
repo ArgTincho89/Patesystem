@@ -11,6 +11,8 @@
     "test:e2e": "npm run --prefix e2e test",
     "test:e2e:report": "npm run --prefix e2e report",
     "test:e2e:ui": "npm run --prefix e2e ui",
+    "test:e2e:ui:only": "npm run --prefix e2e ui:only",
+    "test:e2e:ui:regression": "npm run --prefix e2e ui:regression",
     "test:e2e:install": "npm install --prefix e2e && npm run --prefix e2e install:browsers",
     "test:coverage:diff": "jest --changedSince=origin/master --coverage --forceExit --detectOpenHandles",
     "prepare": "node -e \"const {execSync} = require('child_process'); try { execSync('husky', {stdio: 'inherit'}); } catch(e) { }\""

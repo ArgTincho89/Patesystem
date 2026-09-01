@@ -11,6 +11,8 @@
     "test:ui": "npm run precucumber && cucumber-js --tags @ui",
     "report": "node -e \"const {execSync}=require('child_process'); const cmd=process.platform==='win32'?'start reports/cucumber-report.html':'open reports/cucumber-report.html'; try { execSync(cmd, {stdio:'inherit'}); } catch(e) {}\"",
     "ui": "npm run precucumber && cross-env HEADLESS=false cucumber-js && npm run report",
+    "ui:only": "npm run precucumber && cross-env HEADLESS=false cucumber-js --tags @ui && npm run report",
+    "ui:regression": "npm run precucumber && cross-env HEADLESS=false cucumber-js --tags @regression && npm run report",
     "install:browsers": "playwright install --with-deps chromium"
   },
   "devDependencies": {
