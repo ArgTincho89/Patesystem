@@ -1,1 +1,13 @@
-npm run test:coverage:diff
+# Diffs touching src/ or tests/ run the fast changed-files gate.
+# Anything else (frontend-only changes in public/, e2e/ page objects, config,
+# docs) has no related unit tests, so --changedSince collects no coverage and
+# the per-file thresholds fail with "Coverage data ... was not found".
+# Those changes fall back to the full suite, which is what CI effectively
+# covers anyway. If the diff cannot be computed, fall back to the full suite.
+changed=$(git diff --name-only origin/master...HEAD 2>/dev/null)
+
+if printf '%s\n' "$changed" | grep -qE '^(src|tests)/'; then
+  npm run test:coverage:diff
+else
+  npm run test:coverage
+fi
