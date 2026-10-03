@@ -108,21 +108,13 @@ const ProfilePage = {
 
     content.appendChild(infoSection);
 
-    const changeEmailBtn = create('button', {
+    const accountActionsBtn = create('button', {
       className: 'btn btn-ghost btn-full',
-      textContent: 'Cambiar email',
+      textContent: 'Acciones de cuenta',
       style: { marginBottom: '12px' }
     });
-    on(changeEmailBtn, 'click', () => this.showChangeEmailModal());
-    content.appendChild(changeEmailBtn);
-
-    const changePwBtn = create('button', {
-      className: 'btn btn-ghost btn-full',
-      textContent: 'Cambiar contraseña',
-      style: { marginBottom: '12px' }
-    });
-    on(changePwBtn, 'click', () => this.showChangePasswordModal());
-    content.appendChild(changePwBtn);
+    on(accountActionsBtn, 'click', () => this.showAccountActionsModal());
+    content.appendChild(accountActionsBtn);
 
     const logoutBtn = create('button', {
       className: 'btn btn-danger btn-full',
@@ -138,14 +130,45 @@ const ProfilePage = {
       }
     });
     content.appendChild(logoutBtn);
+  },
 
-    const deleteAccountBtn = create('button', {
+  showAccountActionsModal() {
+    const actions = create('div', {
+      style: { display: 'flex', flexDirection: 'column', gap: '8px' }
+    });
+
+    const changeEmailOption = create('button', {
+      className: 'btn btn-ghost btn-full',
+      textContent: 'Cambiar email',
+      id: 'account-action-change-email'
+    });
+    on(changeEmailOption, 'click', () => this.showChangeEmailModal());
+    actions.appendChild(changeEmailOption);
+
+    const changePwOption = create('button', {
+      className: 'btn btn-ghost btn-full',
+      textContent: 'Cambiar contraseña',
+      id: 'account-action-change-password'
+    });
+    on(changePwOption, 'click', () => this.showChangePasswordModal());
+    actions.appendChild(changePwOption);
+
+    const deleteOption = create('button', {
       className: 'btn btn-danger btn-full',
       textContent: 'Eliminar mi cuenta',
-      style: { marginTop: '12px', background: 'var(--danger)' }
+      id: 'account-action-delete'
     });
-    on(deleteAccountBtn, 'click', () => this.showDeleteAccountModal());
-    content.appendChild(deleteAccountBtn);
+    on(deleteOption, 'click', () => this.showDeleteAccountModal());
+    actions.appendChild(deleteOption);
+
+    const footer = create('div', { style: { display: 'flex', gap: '8px' } });
+    footer.appendChild(create('button', {
+      className: 'btn btn-ghost',
+      textContent: 'Cerrar',
+      onClick: () => Modal.hide()
+    }));
+
+    Modal.show('Acciones de cuenta', actions, { footer });
   },
 
   showChangeEmailModal() {
