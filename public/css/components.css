@@ -273,6 +273,11 @@ select.form-control {
   transform: scale(0.95);
 }
 
+body.desktop-mode .fab {
+  bottom: var(--space-lg);
+  right: var(--space-lg);
+}
+
 .empty-state {
   text-align: center;
   padding: var(--space-xl) var(--space-md);

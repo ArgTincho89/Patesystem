@@ -28,6 +28,9 @@ const Router = {
       return;
     }
 
+    if (!App.user) document.body.classList.remove('desktop-mode');
+    document.body.classList.toggle('desktop-home', path === '/home' && App.isDesktop());
+
     try {
       await handler(params);
       this.currentRoute = path;

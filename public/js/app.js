@@ -1,5 +1,25 @@
 const App = {
   user: null,
+  experienceKey: 'pate_experience',
+
+  getExperience() {
+    return localStorage.getItem(this.experienceKey) === 'desktop' ? 'desktop' : 'mobile';
+  },
+
+  isDesktop() {
+    return this.getExperience() === 'desktop';
+  },
+
+  applyExperience() {
+    document.body.classList.toggle('desktop-mode', this.isDesktop());
+  },
+
+  setExperience(experience) {
+    const selected = experience === 'desktop' ? 'desktop' : 'mobile';
+    localStorage.setItem(this.experienceKey, selected);
+    if (this.user) this.applyExperience();
+    return selected;
+  },
 
   async init() {
     this.registerSW();
@@ -7,11 +27,13 @@ const App = {
 
     try {
       this.user = await API.auth.me();
+      this.applyExperience();
       if (!window.location.hash || window.location.hash === '#/login') {
         Router.navigate('/home');
       }
     } catch {
       this.user = null;
+      document.body.classList.remove('desktop-mode');
       Router.navigate('/login');
     }
 

@@ -256,6 +256,16 @@ const LoginPage = {
             <h1>PateSystem</h1>
             <p>La información es poder, sobretodo en tus finanzas</p>
           </div>
+          <div class="experience-picker" role="group" aria-label="Elegir experiencia">
+            <button type="button" class="experience-option" data-experience="mobile" aria-pressed="${App.getExperience() === 'mobile'}">
+              <span class="experience-option-title">Móvil</span>
+              <span class="experience-option-description">Experiencia actual</span>
+            </button>
+            <button type="button" class="experience-option" data-experience="desktop" aria-pressed="${App.getExperience() === 'desktop'}">
+              <span class="experience-option-title">Escritorio</span>
+              <span class="experience-option-description">Nueva experiencia</span>
+            </button>
+          </div>
           <div class="login-tabs">
             <button class="login-tab active" data-tab="login">Iniciar sesión</button>
             <button class="login-tab" data-tab="register">Registrarse</button>
@@ -315,6 +325,15 @@ const LoginPage = {
       </div>
     `;
 
+    $$('[data-experience]').forEach(option => {
+      on(option, 'click', () => {
+        const selected = App.setExperience(option.dataset.experience);
+        $$('[data-experience]').forEach(item => {
+          item.setAttribute('aria-pressed', String(item.dataset.experience === selected));
+        });
+      });
+    });
+
     $$('.login-tab').forEach(tab => {
       on(tab, 'click', () => {
         $$('.login-tab').forEach(t => t.classList.remove('active'));
@@ -335,6 +354,7 @@ const LoginPage = {
           nombre: $('#login-nombre').value,
           password: $('#login-password').value
         });
+        App.applyExperience();
         navbar.style.display = '';
         content.style.paddingBottom = '';
         Router.navigate('/home');
@@ -351,6 +371,7 @@ const LoginPage = {
           email: $('#register-email').value,
           password: $('#register-password').value
         });
+        App.applyExperience();
         navbar.style.display = '';
         content.style.paddingBottom = '';
         Router.navigate('/home');

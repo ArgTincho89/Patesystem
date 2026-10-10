@@ -4,6 +4,7 @@ const HomePage = {
   async render(params) {
     const content = $('#page-content');
     const navbar = $('#navbar');
+    const desktop = App.isDesktop();
     navbar.style.display = '';
     content.style.paddingBottom = '';
 
@@ -18,13 +19,15 @@ const HomePage = {
     content.innerHTML = '<div class="loading">Cargando...</div>';
 
     try {
-      const [summary, transactions, categories] = await Promise.all([
+      const [summary, transactions, categories, goals, burnRate] = await Promise.all([
         API.summary.get(this.currentMonth),
         API.transactions.list(this.currentMonth),
-        API.categories.list()
+        API.categories.list(),
+        desktop ? API.goals.list(this.currentMonth).catch(() => []) : Promise.resolve([]),
+        desktop ? API.summary.burnRate(this.currentMonth, 1).catch(() => null) : Promise.resolve(null)
       ]);
 
-      this.renderContent(content, summary, transactions, categories);
+      this.renderContent(content, summary, transactions, categories, { desktop, goals, burnRate });
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           content.classList.add('visible');
@@ -36,17 +39,38 @@ const HomePage = {
     }
   },
 
-  renderContent(content, summary, transactions, categories) {
+  renderContent(content, summary, transactions, categories, options = {}) {
     const catMap = {};
     categories.forEach(c => catMap[c.id] = c);
 
     content.innerHTML = '';
 
+    let transactionPane = content;
+    if (options.desktop) {
+      const workspace = create('div', { className: 'desktop-home-workspace' });
+      const transactionsPanel = create('section', { className: 'desktop-home-transactions', 'aria-label': 'Inicio' });
+      const analyticsPanel = create('section', { className: 'desktop-home-analytics', 'aria-label': 'Analítica' });
+      const analyticsScroll = create('div', { className: 'desktop-home-analytics-scroll' });
+
+      transactionsPanel.appendChild(create('h1', { className: 'page-title desktop-home-title', textContent: 'Inicio' }));
+      analyticsPanel.appendChild(create('h2', { className: 'page-title desktop-analytics-title', textContent: 'Analítica' }));
+      analyticsPanel.appendChild(analyticsScroll);
+      workspace.appendChild(transactionsPanel);
+      workspace.appendChild(analyticsPanel);
+      content.appendChild(workspace);
+      transactionPane = transactionsPanel;
+
+      SummaryPage.renderContent(analyticsScroll, summary, options.goals || [], options.burnRate, {
+        hideMonthNav: true,
+        categoryDisclosure: true
+      });
+    }
+
     const monthNav = createMonthSelector(this.currentMonth, (newMonth) => {
       this.currentMonth = newMonth;
       Router.navigate(`/home?month=${newMonth}`);
     }, { allowFuture: true });
-    content.appendChild(monthNav);
+    transactionPane.appendChild(monthNav);
 
     const incomeHidden = localStorage.getItem('pate_hide_income') === 'true';
 
@@ -68,7 +92,7 @@ const HomePage = {
       savingsVal.classList.add('income-blurred');
     }
 
-    content.appendChild(statsRow);
+    if (!options.desktop) transactionPane.appendChild(statsRow);
 
     if (transactions.length > 0 || this.hasActiveFilters()) {
       const txSection = create('div');
@@ -161,9 +185,9 @@ const HomePage = {
         });
       }
 
-      content.appendChild(txSection);
+      transactionPane.appendChild(txSection);
     } else {
-      content.appendChild(create('div', {
+      transactionPane.appendChild(create('div', {
         className: 'empty-state',
         innerHTML: '<div class="empty-state-icon">📊</div><p class="empty-state-text">No hay transacciones este mes</p>'
       }));

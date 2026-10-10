@@ -10,6 +10,32 @@ Given('que no existe un usuario de prueba', async function (this: PateSystemWorl
   this.user = buildTestUser('ui');
 });
 
+Then('la experiencia móvil está seleccionada por defecto', async function (this: PateSystemWorld) {
+  await expect(this.page!.locator('[data-experience="mobile"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(this.page!.locator('[data-experience="desktop"]')).toHaveAttribute('aria-pressed', 'false');
+});
+
+When('selecciono la experiencia de escritorio', async function (this: PateSystemWorld) {
+  await this.page!.click('[data-experience="desktop"]');
+});
+
+Then('la elección de escritorio queda guardada', async function (this: PateSystemWorld) {
+  await expect(this.page!.locator('[data-experience="desktop"]')).toHaveAttribute('aria-pressed', 'true');
+  expect(await this.page!.evaluate(() => localStorage.getItem('pate_experience'))).toBe('desktop');
+});
+
+Then('la preferencia de escritorio se conserva al recargar', async function (this: PateSystemWorld) {
+  await this.page!.reload();
+  await expect(this.page!.locator('[data-experience="desktop"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
+Then('el inicio muestra las áreas de transacciones y analítica', async function (this: PateSystemWorld) {
+  await expect(this.page!.locator('.desktop-home-workspace')).toBeVisible();
+  await expect(this.page!.getByRole('heading', { name: 'Inicio' })).toBeVisible();
+  await expect(this.page!.getByRole('heading', { name: 'Analítica' })).toBeVisible();
+  await expect(this.page!.locator('.desktop-home-transactions .month-nav')).toBeVisible();
+});
+
 When('abro la página de registro', async function (this: PateSystemWorld) {
   const registerPage = new RegisterPage(this.page!);
   await registerPage.navigate();

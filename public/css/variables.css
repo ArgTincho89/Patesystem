@@ -46,6 +46,7 @@
   --font-2xl: 2rem;
 
   --navbar-height: 64px;
+  --desktop-nav-width: 88px;
   --header-height: 56px;
   --touch-min: 44px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);

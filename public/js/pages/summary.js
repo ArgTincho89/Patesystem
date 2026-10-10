@@ -22,14 +22,16 @@ const SummaryPage = {
     }
   },
 
-  renderContent(content, summary, goals, burnRate) {
+  renderContent(content, summary, goals, burnRate, options = {}) {
     content.innerHTML = '';
 
-    const monthNav = createMonthSelector(this.currentMonth, (newMonth) => {
-      this.currentMonth = newMonth;
-      Router.navigate(`/summary?month=${newMonth}`);
-    }, { allowFuture: true });
-    content.appendChild(monthNav);
+    if (!options.hideMonthNav) {
+      const monthNav = createMonthSelector(this.currentMonth, (newMonth) => {
+        this.currentMonth = newMonth;
+        Router.navigate(`/summary?month=${newMonth}`);
+      }, { allowFuture: true });
+      content.appendChild(monthNav);
+    }
 
     const statsRow = create('div', { className: 'stats-row' });
     const savingsColor = summary.ahorro >= 0 ? 'var(--success)' : 'var(--danger)';
@@ -87,14 +89,23 @@ const SummaryPage = {
     }
 
     const catSection = create('div', { className: 'summary-section' });
-    catSection.appendChild(create('h3', {
-      textContent: 'Desglose por categoría',
-      style: { marginBottom: '16px' }
-    }));
+    let breakdownContent = catSection;
+    if (options.categoryDisclosure) {
+      const details = create('details', { className: 'desktop-category-disclosure', open: true });
+      details.appendChild(create('summary', { textContent: 'Desglose por categoría' }));
+      breakdownContent = create('div', { className: 'desktop-category-breakdown-scroll' });
+      details.appendChild(breakdownContent);
+      catSection.appendChild(details);
+    } else {
+      catSection.appendChild(create('h3', {
+        textContent: 'Desglose por categoría',
+        style: { marginBottom: '16px' }
+      }));
+    }
 
     const flatCats = summary.porCategoria.filter(c => c.neto > 0);
     if (flatCats.length === 0) {
-      catSection.appendChild(create('p', {
+      breakdownContent.appendChild(create('p', {
         textContent: 'No hay gastos este mes',
         className: 'text-muted text-center'
       }));
@@ -118,7 +129,7 @@ const SummaryPage = {
             <div class="category-bar-fill" style="width:${barWidth}%; background:${cat.color || '#6c6c7c'};"></div>
           </div>
         `;
-        catSection.appendChild(row);
+        breakdownContent.appendChild(row);
 
         (cat.children || []).forEach(child => renderBreakdown(child, depth + 1));
       };
