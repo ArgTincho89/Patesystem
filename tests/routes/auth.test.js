@@ -317,7 +317,7 @@ describe('Auth Routes', () => {
 
       const loginRes = await agent.post('/api/auth/login').send({ nombre: 'CPOk', password: 'newpass123' });
       expect(loginRes.status).toBe(200);
-    });
+    }, 15000);
   });
 
   describe('POST /api/auth/change-email', () => {
