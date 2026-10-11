@@ -421,6 +421,10 @@ const HomePage = {
     if (!saved) return null;
     try {
       const favorite = JSON.parse(saved);
+      if (favorite?.type === 'category-breakdown' || favorite?.key === 'category-breakdown') {
+        localStorage.removeItem(storageKey);
+        return null;
+      }
       if (favorite?.type && favorite?.key) return favorite;
     } catch {
       // Legacy metric-only favorites are intentionally discarded.
@@ -482,6 +486,7 @@ const HomePage = {
     favoriteCard.classList.add('desktop-favorite-card', 'desktop-favorite-replica');
     favoriteCard.classList.remove('desktop-favorite-source');
     favoriteCard.setAttribute('aria-label', `Favorito: ${this.favorite.label || 'Analítica'}`);
+    favoriteCard.setAttribute('tabindex', '0');
     favoriteCard.querySelectorAll('.analytics-favorite-toggle, .chart-tooltip').forEach(node => node.remove());
     favoriteCard.prepend(create('div', {
       className: 'desktop-favorite-replica-heading',

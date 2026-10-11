@@ -33,6 +33,18 @@ Característica: Dashboard de inicio
     Entonces no veo la transacción "Mes pasado"
     Y no hay errores críticos en la consola
 
+  Escenario: Las flechas de mes funcionan en escritorio ancho y compacto
+    Cuando abro la página de inicio
+    Y configuro el inicio en modo escritorio
+    Entonces las flechas del mes están visibles y no se superponen
+    Cuando navego al mes siguiente
+    Entonces las flechas del mes están visibles y no se superponen
+    Cuando redimensiono el inicio al ancho de escritorio 768
+    Entonces las flechas del mes están visibles y no se superponen
+    Cuando navego al mes siguiente
+    Entonces las flechas del mes están visibles y no se superponen
+    Y no hay errores críticos en la consola
+
   Escenario: Toggle de ojo oculta ingresos y ahorro
     Cuando abro la página de inicio
     Y creo un ingreso "Sueldo" de 2000 con clasificación "A"
@@ -45,7 +57,9 @@ Característica: Dashboard de inicio
   Escenario: Favoritos analíticos, controles y tooltips en escritorio
     Cuando abro la página de inicio
     Y configuro el inicio en modo escritorio
+    Y guardo el desglose por categoría como favorito heredado y recargo
     Entonces aparecen tres tarjetas principales
+    Y el favorito heredado de desglose por categoría se descarta
     Y las tres métricas principales no tienen estrellas
     Y las métricas tienen iconos decorativos y el botón dice Nueva transacción
     Y los controles de inicio aparecen en el orden requerido
@@ -56,11 +70,16 @@ Característica: Dashboard de inicio
     Entonces el tooltip del gráfico "Resumen del mes" muestra datos de euros y porcentajes
     Y el tooltip del gráfico "Ritmo de gasto" muestra un valor en euros
     Cuando abro la pestaña de analítica "Categorías"
-    Entonces el tooltip del gráfico "Distribución de gastos" muestra datos de euros y porcentajes
+    Entonces el desglose por categoría sigue en analítica sin estrella
+    Y la gráfica "Distribución de gastos" sigue disponible como favorito
+    Y el tooltip del gráfico "Distribución de gastos" muestra datos de euros y porcentajes
     Y el tooltip del gráfico "Distribución de gastos" se puede explorar con teclado
-    Cuando marco "Distribución de gastos" como favorito analítico
+    Cuando anoto la altura actual de la fila KPI
+    Y marco "Distribución de gastos" como favorito analítico
     Entonces el favorito analítico de inicio es "Distribución de gastos"
     Y la réplica favorita contiene un gráfico interactivo
+    Y la réplica favorita es compacta, desplazable y no agranda la fila KPI
+    Y la página no tiene desbordamiento horizontal
     Y el tooltip del gráfico "Distribución de gastos" muestra datos de euros y porcentajes
     Cuando navego al mes anterior
     Entonces el favorito analítico de inicio es "Distribución de gastos"

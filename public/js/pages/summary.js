@@ -104,9 +104,6 @@ const SummaryPage = {
 
     const catSection = create('div', { className: 'summary-section' });
     catSection.dataset.analyticsGroup = 'categorias';
-    catSection.dataset.favoriteType = 'category-breakdown';
-    catSection.dataset.favoriteKey = 'category-breakdown';
-    catSection.dataset.favoriteLabel = 'Desglose por categoría';
     let breakdownContent = catSection;
     if (options.categoryDisclosure) {
       const details = create('details', { className: 'desktop-category-disclosure', open: true });

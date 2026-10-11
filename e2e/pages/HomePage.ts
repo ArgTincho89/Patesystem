@@ -143,6 +143,75 @@ export class HomePage extends BasePage {
     await expect(this.page.locator(this.selectors.favoriteCard)).toContainText(`Favorito · ${label}`);
   }
 
+  async expectCategoryBreakdownIsNotFavoritable(): Promise<void> {
+    const breakdown = this.page.locator('#home-analytics-panel-categorias .summary-section');
+    await expect(breakdown).toContainText('Desglose por categoría');
+    await expect(breakdown.locator('.analytics-favorite-toggle')).toHaveCount(0);
+  }
+
+  async expectAnalyticCanBeFavorited(label: string): Promise<void> {
+    await expect(this.page.getByRole('button', { name: `Marcar ${label} como favorito` })).toBeVisible();
+  }
+
+  async expectNoPersistedCategoryBreakdownFavorite(): Promise<void> {
+    await expect(this.page.locator(this.selectors.favoriteCard)).toHaveCount(0);
+    await expect(this.page.locator('.desktop-home-stats > .desktop-stat-card')).toHaveCount(3);
+    expect(await this.page.evaluate(() => localStorage.getItem('pate_home_favorite'))).toBeNull();
+  }
+
+  async storeDesktopStatsRowHeight(): Promise<void> {
+    await this.page.locator('.desktop-home-stats').evaluate(row => {
+      (row as HTMLElement).dataset.e2eHeightBeforeFavorite = String(row.getBoundingClientRect().height);
+    });
+  }
+
+  async expectFavoriteReplicaCompactAndScrollable(): Promise<void> {
+    const replica = this.page.locator(this.selectors.favoriteReplica);
+    await expect(replica).toBeVisible();
+    await expect(replica).toHaveAttribute('tabindex', '0');
+    const metrics = await replica.evaluate(element => {
+      const row = element.closest('.desktop-home-stats') as HTMLElement;
+      const before = Number(row.dataset.e2eHeightBeforeFavorite);
+      const rect = element.getBoundingClientRect();
+      return {
+        height: rect.height,
+        rowHeight: row.getBoundingClientRect().height,
+        rowHeightBefore: before,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+        overflowY: getComputedStyle(element).overflowY,
+        overflowX: getComputedStyle(element).overflowX,
+        slotIndex: Array.from(row.children).indexOf(element),
+        savingsIndex: Array.from(row.children).findIndex(child => child.classList.contains('desktop-stat-ahorro')),
+        savingsRight: row.querySelector('.desktop-stat-ahorro')!.getBoundingClientRect().right,
+        favoriteLeft: rect.left,
+      };
+    });
+    expect(metrics.height).toBeLessThanOrEqual(164);
+    expect(metrics.rowHeight).toBeLessThanOrEqual(metrics.rowHeightBefore + 1);
+    expect(metrics.slotIndex).toBe(3);
+    expect(metrics.savingsIndex).toBe(2);
+    expect(metrics.favoriteLeft).toBeGreaterThanOrEqual(metrics.savingsRight);
+    expect(metrics.overflowY).toBe('auto');
+    expect(metrics.overflowX).toBe('hidden');
+    expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+
+    const didScroll = await replica.evaluate(element => {
+      element.scrollTop = element.scrollHeight;
+      return element.scrollTop > 0;
+    });
+    expect(didScroll).toBe(true);
+  }
+
+  async expectNoHorizontalPageOverflow(): Promise<void> {
+    const overflow = await this.page.evaluate(() => ({
+      document: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      body: document.body.scrollWidth > document.body.clientWidth,
+    }));
+    expect(overflow.document).toBe(false);
+    expect(overflow.body).toBe(false);
+  }
+
   async expectFavoriteUnavailable(): Promise<void> {
     await expect(this.page.locator(this.selectors.favoriteReplica)).toContainText('Este análisis no tiene datos en el período actual.');
   }
@@ -192,6 +261,48 @@ export class HomePage extends BasePage {
     expect(layout.centered).toBe(true);
     expect(layout.larger).toBe(true);
     expect(layout.separated).toBe(true);
+  }
+
+  async expectDesktopMonthArrowsVisibleAndSeparated(): Promise<void> {
+    const layout = await this.page.locator('.desktop-month-selector').evaluate(selector => {
+      const buttons = Array.from(selector.querySelectorAll('button'));
+      const label = selector.querySelector('h2')!;
+      const selectorBounds = selector.getBoundingClientRect();
+      const previous = buttons[0].getBoundingClientRect();
+      const month = label.getBoundingClientRect();
+      const next = buttons[1].getBoundingClientRect();
+      const pointHits = (button: Element, rect: DOMRect) => {
+        const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+        return hit === button || button.contains(hit);
+      };
+      return {
+        buttonsPresent: buttons.length === 2,
+        buttonsVisible: buttons.every(button => {
+          const bounds = button.getBoundingClientRect();
+          return getComputedStyle(button).visibility === 'visible'
+            && bounds.width >= 40
+            && bounds.height >= 40
+            && bounds.left >= selectorBounds.left
+            && bounds.right <= selectorBounds.right;
+        }),
+        columnsSeparated: previous.right <= month.left && month.right <= next.left,
+        buttonsClickable: pointHits(buttons[0], previous) && pointHits(buttons[1], next),
+      };
+    });
+    expect(layout.buttonsPresent).toBe(true);
+    expect(layout.buttonsVisible).toBe(true);
+    expect(layout.columnsSeparated).toBe(true);
+    expect(layout.buttonsClickable).toBe(true);
+  }
+
+  async persistCategoryBreakdownFavoriteAndReload(): Promise<void> {
+    await this.page.evaluate(() => localStorage.setItem('pate_home_favorite', JSON.stringify({
+      type: 'category-breakdown',
+      key: 'category-breakdown',
+      label: 'Desglose por categoría',
+    })));
+    await this.page.reload();
+    await this.page.waitForSelector('.desktop-home-workspace', { state: 'visible' });
   }
 
   async hoverChartPoint(label: string): Promise<string> {
@@ -293,7 +404,7 @@ export class HomePage extends BasePage {
     await nav.waitFor({ state: 'visible' });
     const previousMonth = await nav.locator('h2').innerText();
     const button = nav.locator('button').nth(direction === 'prev' ? 0 : 1);
-    await button.click({ force: true });
+    await button.click();
     await expect(this.page.locator(this.selectors.monthLabel)).not.toHaveText(previousMonth);
   }
 

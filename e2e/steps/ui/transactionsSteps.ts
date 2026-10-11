@@ -96,6 +96,11 @@ When('configuro el inicio en modo escritorio', async function (this: PateSystemW
   await this.page!.waitForSelector('.desktop-home-workspace', { state: 'visible' });
 });
 
+When('guardo el desglose por categoría como favorito heredado y recargo', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.persistCategoryBreakdownFavoriteAndReload();
+});
+
 When('mantengo el modo móvil en viewport {int}', async function (this: PateSystemWorld, width: number) {
   await this.page!.setViewportSize({ width, height: 844 });
   await this.page!.evaluate(() => localStorage.setItem('pate_experience', 'mobile'));
@@ -176,6 +181,41 @@ Then('el acceso de Resumen no aparece en la navegación de escritorio', async fu
 Then('el selector de mes está centrado y destacado', async function (this: PateSystemWorld) {
   const homePage = new HomePage(this.page!);
   await homePage.expectDesktopMonthCenteredAndLarger();
+});
+
+Then('las flechas del mes están visibles y no se superponen', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectDesktopMonthArrowsVisibleAndSeparated();
+});
+
+Then('el desglose por categoría sigue en analítica sin estrella', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectCategoryBreakdownIsNotFavoritable();
+});
+
+Then('la gráfica {string} sigue disponible como favorito', async function (this: PateSystemWorld, label: string) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectAnalyticCanBeFavorited(label);
+});
+
+Then('el favorito heredado de desglose por categoría se descarta', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectNoPersistedCategoryBreakdownFavorite();
+});
+
+When('anoto la altura actual de la fila KPI', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.storeDesktopStatsRowHeight();
+});
+
+Then('la réplica favorita es compacta, desplazable y no agranda la fila KPI', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectFavoriteReplicaCompactAndScrollable();
+});
+
+Then('la página no tiene desbordamiento horizontal', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectNoHorizontalPageOverflow();
 });
 
 Then('el tooltip del gráfico {string} muestra datos de euros y porcentajes', async function (this: PateSystemWorld, label: string) {
