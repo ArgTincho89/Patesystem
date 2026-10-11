@@ -2,7 +2,7 @@ function createMonthSelector(currentMonth, onChange, options = {}) {
   const container = create('div', { className: 'month-nav' });
 
   const btnPrev = create('button', { innerHTML: '&lt;', title: 'Mes anterior' });
-  const monthLabel = create('h2', { textContent: formatMonth(currentMonth) });
+  const monthLabel = create('h2', { textContent: (options.formatMonthLabel || formatMonth)(currentMonth) });
   const btnNext = create('button', { innerHTML: '&gt;', title: 'Mes siguiente' });
 
   if (!options.allowFuture) {

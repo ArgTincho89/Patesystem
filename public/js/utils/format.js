@@ -35,6 +35,14 @@ function formatMonth(monthStr) {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
+function formatMonthLabel(monthStr) {
+  const [year, month] = monthStr.split('-');
+  const rawMonth = new Date(parseInt(year), parseInt(month) - 1)
+    .toLocaleDateString('es-ES', { month: 'long' });
+  const monthLabel = rawMonth.charAt(0).toUpperCase() + rawMonth.slice(1);
+  return `${monthLabel} ${year}`;
+}
+
 function getCurrentMonth() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

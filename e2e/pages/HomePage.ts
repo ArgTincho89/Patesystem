@@ -159,48 +159,90 @@ export class HomePage extends BasePage {
     expect(await this.page.evaluate(() => localStorage.getItem('pate_home_favorite'))).toBeNull();
   }
 
-  async storeDesktopStatsRowHeight(): Promise<void> {
-    await this.page.locator('.desktop-home-stats').evaluate(row => {
-      (row as HTMLElement).dataset.e2eHeightBeforeFavorite = String(row.getBoundingClientRect().height);
-    });
-  }
-
-  async expectFavoriteReplicaCompactAndScrollable(): Promise<void> {
+  async expectFavoriteReplicaCompactWithoutScrolling(): Promise<void> {
     const replica = this.page.locator(this.selectors.favoriteReplica);
     await expect(replica).toBeVisible();
     await expect(replica).toHaveAttribute('tabindex', '0');
+    await expect(replica.locator('.desktop-favorite-replica-heading')).toHaveCount(1);
+    await expect(replica.locator('.chart-title')).toHaveCount(0);
     const metrics = await replica.evaluate(element => {
       const row = element.closest('.desktop-home-stats') as HTMLElement;
-      const before = Number(row.dataset.e2eHeightBeforeFavorite);
       const rect = element.getBoundingClientRect();
+      const canvas = element.querySelector('canvas');
+      const primaryCards = Array.from(row.querySelectorAll('.desktop-stat-card'), card => card.getBoundingClientRect());
       return {
         height: rect.height,
         rowHeight: row.getBoundingClientRect().height,
-        rowHeightBefore: before,
         scrollHeight: element.scrollHeight,
         clientHeight: element.clientHeight,
         overflowY: getComputedStyle(element).overflowY,
         overflowX: getComputedStyle(element).overflowX,
+        canvasHeight: canvas?.getBoundingClientRect().height ?? 0,
+        primaryCardHeights: primaryCards.map(card => card.height),
         slotIndex: Array.from(row.children).indexOf(element),
         savingsIndex: Array.from(row.children).findIndex(child => child.classList.contains('desktop-stat-ahorro')),
         savingsRight: row.querySelector('.desktop-stat-ahorro')!.getBoundingClientRect().right,
         favoriteLeft: rect.left,
       };
     });
-    expect(metrics.height).toBeLessThanOrEqual(164);
-    expect(metrics.rowHeight).toBeLessThanOrEqual(metrics.rowHeightBefore + 1);
+    expect(metrics.height).toBeLessThanOrEqual(110);
+    expect(metrics.rowHeight).toBeLessThanOrEqual(121);
     expect(metrics.slotIndex).toBe(3);
     expect(metrics.savingsIndex).toBe(2);
     expect(metrics.favoriteLeft).toBeGreaterThanOrEqual(metrics.savingsRight);
-    expect(metrics.overflowY).toBe('auto');
-    expect(metrics.overflowX).toBe('hidden');
-    expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+    expect(metrics.overflowY).toBe('visible');
+    expect(metrics.overflowX).toBe('visible');
+    expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.clientHeight + 1);
+    expect(metrics.canvasHeight).toBeLessThanOrEqual(66);
+    expect(metrics.primaryCardHeights).toEqual([110, 110, 110]);
+  }
 
-    const didScroll = await replica.evaluate(element => {
-      element.scrollTop = element.scrollHeight;
-      return element.scrollTop > 0;
+  async expectFavoriteLegendContains(...values: string[]): Promise<void> {
+    const legend = this.page.locator(`${this.selectors.favoriteReplica} .desktop-favorite-legend`);
+    await expect(legend).toBeVisible();
+    for (const value of values) await expect(legend).toContainText(value);
+  }
+
+  async expectCategoryBreakdownDisclosureKeyboardToggle(): Promise<void> {
+    const details = this.page.locator('#home-analytics-panel-categorias details.desktop-category-disclosure');
+    const summary = details.locator('summary');
+    await expect(details).toBeVisible();
+    await expect(details).not.toHaveAttribute('open', '');
+    await summary.focus();
+    await summary.press('Enter');
+    await expect(details).toHaveAttribute('open', '');
+    await summary.press('Space');
+    await expect(details).not.toHaveAttribute('open', '');
+  }
+
+  async expectMonthLabelHasFullMonthAndYear(): Promise<void> {
+    const label = await this.page.locator(this.selectors.monthLabel).innerText();
+    expect(label).toMatch(/^(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre) \d{4}$/);
+    expect(label).not.toContain(' de ');
+  }
+
+  async expectIvaFavoriteStarInsideZeroValueCard(): Promise<void> {
+    const source = this.page.locator('.desktop-favorite-source[data-favorite-type="iva-summary"]');
+    await expect(source).toContainText('IVA acumulado: 0€');
+    const star = source.locator('.analytics-favorite-toggle');
+    await expect(star).toBeVisible();
+    const metrics = await source.evaluate(element => {
+      const button = element.querySelector('.analytics-favorite-toggle')!;
+      const textNode = Array.from(element.childNodes).find(node => node.nodeType === Node.TEXT_NODE)!;
+      const range = document.createRange();
+      range.selectNode(textNode);
+      const text = range.getBoundingClientRect();
+      const card = element.getBoundingClientRect();
+      const star = button.getBoundingClientRect();
+      return {
+        cardHeight: card.height,
+        starInside: star.left >= card.left && star.right <= card.right && star.top >= card.top && star.bottom <= card.bottom,
+        textAndStarSeparated: star.right <= text.left || star.left >= text.right || star.bottom <= text.top || star.top >= text.bottom,
+      };
     });
-    expect(didScroll).toBe(true);
+    expect(metrics.cardHeight).toBeGreaterThanOrEqual(52);
+    expect(metrics.starInside).toBe(true);
+    expect(metrics.textAndStarSeparated).toBe(true);
   }
 
   async expectNoHorizontalPageOverflow(): Promise<void> {
@@ -326,6 +368,18 @@ export class HomePage extends BasePage {
     await canvas.hover({ position: point });
     const tooltip = card.locator(this.selectors.chartTooltip);
     await expect(tooltip).toBeVisible();
+    const isFavorite = await card.evaluate(element => element.classList.contains('desktop-favorite-replica'));
+    if (isFavorite) {
+      const clipped = await tooltip.evaluate(element => {
+        const favorite = element.closest('.desktop-favorite-replica');
+        for (let parent = element.parentElement; parent && favorite?.contains(parent); parent = parent.parentElement) {
+          const style = getComputedStyle(parent);
+          if ([style.overflowX, style.overflowY].some(value => value === 'hidden' || value === 'clip' || value === 'auto' || value === 'scroll')) return true;
+        }
+        return false;
+      });
+      expect(clipped).toBe(false);
+    }
     return tooltip.innerText();
   }
 

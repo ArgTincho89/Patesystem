@@ -283,7 +283,7 @@ const HomePage = {
     const monthSelector = createMonthSelector(this.currentMonth, (newMonth) => {
       this.currentMonth = newMonth;
       Router.navigate(`/home?month=${newMonth}`);
-    }, { allowFuture: true });
+    }, { allowFuture: true, formatMonthLabel });
     monthSelector.classList.add('desktop-month-selector');
     monthSelector.setAttribute('aria-label', 'Seleccionar mes');
     monthSelector.querySelectorAll('button')[0].setAttribute('aria-label', 'Mes anterior');
@@ -344,7 +344,8 @@ const HomePage = {
     SummaryPage.renderContent(summaryContent, summary, options.goals || [], options.burnRate, {
       hideMonthNav: true,
       suppressStats: true,
-      desktopTabs: true
+      desktopTabs: true,
+      categoryDisclosure: true
     });
     if (summary.porCategoria.length || summary.ingresos > 0 || summary.gastosNetos > 0 || summary.reembolsos > 0) {
       const monthOverview = EstadisticasPage.renderMonthOverviewInto(summaryContent, summary);
@@ -488,6 +489,54 @@ const HomePage = {
     favoriteCard.setAttribute('aria-label', `Favorito: ${this.favorite.label || 'Analítica'}`);
     favoriteCard.setAttribute('tabindex', '0');
     favoriteCard.querySelectorAll('.analytics-favorite-toggle, .chart-tooltip').forEach(node => node.remove());
+    favoriteCard.querySelectorAll('.chart-title').forEach(node => node.remove());
+
+    const favoriteLayouts = {
+      'category-chart': 'donut',
+      'expense-split': 'donut',
+      'income-split': 'donut',
+      'trend-savings': 'line',
+      'trend-category': 'line',
+      'trend-income-ab': 'line',
+      'month-overview': 'bar',
+      'trend-iva': 'bar',
+      'burn-rate': 'burn-rate'
+    };
+    const layout = favoriteLayouts[this.favorite.type];
+    if (layout) favoriteCard.classList.add(`desktop-favorite-${layout}`);
+
+    favoriteCard.querySelectorAll('canvas').forEach(canvas => {
+      canvas.parentElement?.classList.add('desktop-favorite-chart-wrap');
+    });
+
+    const legend = Array.from(favoriteCard.children).find(child =>
+      child.matches('.fv-legend, .burn-legend') || child.querySelector('.category-badge')
+    );
+    if (legend) {
+      legend.classList.add('desktop-favorite-legend');
+      const entries = Array.from(legend.children);
+      const visibleEntryLimit = 2;
+      if (entries.length > visibleEntryLimit) {
+        entries.slice(visibleEntryLimit).forEach(entry => entry.remove());
+        legend.appendChild(create('span', {
+          className: 'desktop-favorite-legend-more',
+          textContent: `+${entries.length - visibleEntryLimit} más`,
+          title: 'Explora el gráfico con el teclado para ver todos los valores',
+          'aria-label': 'Explora el gráfico con el teclado para ver todos los valores'
+        }));
+      }
+    }
+
+    if (this.favorite.type === 'month-overview' && legend) {
+      Array.from(favoriteCard.children)
+        .filter(child => child !== legend && child.classList.contains('category-badge'))
+        .forEach(child => child.remove());
+    }
+
+    if (favoriteCard.classList.contains('goal-progress-card')) {
+      favoriteCard.classList.add('desktop-favorite-goal');
+    }
+    favoriteCard.querySelector('.goal-progress-label')?.setAttribute('aria-hidden', 'true');
     favoriteCard.prepend(create('div', {
       className: 'desktop-favorite-replica-heading',
       textContent: `Favorito · ${this.favorite.label || 'Analítica'}`

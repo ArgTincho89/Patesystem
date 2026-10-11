@@ -36,6 +36,7 @@ Característica: Dashboard de inicio
   Escenario: Las flechas de mes funcionan en escritorio ancho y compacto
     Cuando abro la página de inicio
     Y configuro el inicio en modo escritorio
+    Y redimensiono el inicio al ancho de escritorio 1280
     Entonces las flechas del mes están visibles y no se superponen
     Cuando navego al mes siguiente
     Entonces las flechas del mes están visibles y no se superponen
@@ -57,7 +58,9 @@ Característica: Dashboard de inicio
   Escenario: Favoritos analíticos, controles y tooltips en escritorio
     Cuando abro la página de inicio
     Y configuro el inicio en modo escritorio
-    Y guardo el desglose por categoría como favorito heredado y recargo
+    Y redimensiono el inicio al ancho de escritorio 1280
+    Entonces el selector muestra mes y año completos sin preposición
+    Cuando guardo el desglose por categoría como favorito heredado y recargo
     Entonces aparecen tres tarjetas principales
     Y el favorito heredado de desglose por categoría se descarta
     Y las tres métricas principales no tienen estrellas
@@ -65,20 +68,20 @@ Característica: Dashboard de inicio
     Y los controles de inicio aparecen en el orden requerido
     Y el acceso de Resumen no aparece en la navegación de escritorio
     Y el selector de mes está centrado y destacado
-    Cuando creo un ingreso "Favorito sueldo" de 2100 con clasificación "A"
+    Cuando creo un ingreso "Favorito sueldo" de 2100 con clasificación "A" y con IVA cero
     Y creo un gasto en "Dashboard UI" llamado "Favorito compra" por 500
     Entonces el tooltip del gráfico "Resumen del mes" muestra datos de euros y porcentajes
     Y el tooltip del gráfico "Ritmo de gasto" muestra un valor en euros
     Cuando abro la pestaña de analítica "Categorías"
     Entonces el desglose por categoría sigue en analítica sin estrella
+    Y el desglose por categoría está contraído y se abre y cierra con teclado
     Y la gráfica "Distribución de gastos" sigue disponible como favorito
     Y el tooltip del gráfico "Distribución de gastos" muestra datos de euros y porcentajes
     Y el tooltip del gráfico "Distribución de gastos" se puede explorar con teclado
-    Cuando anoto la altura actual de la fila KPI
     Y marco "Distribución de gastos" como favorito analítico
     Entonces el favorito analítico de inicio es "Distribución de gastos"
     Y la réplica favorita contiene un gráfico interactivo
-    Y la réplica favorita es compacta, desplazable y no agranda la fila KPI
+    Y la réplica favorita es compacta, sin desplazamiento interno y amplía la fila KPI como máximo un 10 por ciento
     Y la página no tiene desbordamiento horizontal
     Y el tooltip del gráfico "Distribución de gastos" muestra datos de euros y porcentajes
     Cuando navego al mes anterior
@@ -86,10 +89,23 @@ Característica: Dashboard de inicio
     Y no hay datos para el favorito analítico del período actual
     Cuando navego al mes siguiente
     Entonces la réplica favorita contiene un gráfico interactivo
+    Cuando creo un gasto fijo en "Dashboard UI" llamado "Favorito fijo" por 300
     Cuando marco "Fijo vs Variable" como favorito analítico
     Entonces el favorito analítico de inicio es "Fijo vs Variable"
     Y la réplica favorita contiene un gráfico interactivo
+    Y la réplica favorita es compacta, sin desplazamiento interno y amplía la fila KPI como máximo un 10 por ciento
+    Y la leyenda de la réplica favorita contiene "Fijo: 300€"
+    Y la leyenda de la réplica favorita contiene "Variable: 500€"
+    Cuando redimensiono el inicio al ancho de escritorio 768
+    Entonces la réplica favorita es compacta, sin desplazamiento interno y amplía la fila KPI como máximo un 10 por ciento
+    Y la página no tiene desbordamiento horizontal
+    Cuando redimensiono el inicio al ancho de escritorio 1280
     Cuando quito el favorito analítico "Fijo vs Variable"
+    Entonces no hay tarjeta de favorito en inicio
+    Cuando marco "IVA acumulado" como favorito analítico
+    Entonces el favorito analítico de inicio es "IVA acumulado"
+    Y la estrella de IVA cero queda dentro de la tarjeta sin tapar el texto
+    Cuando quito el favorito analítico "IVA acumulado"
     Entonces no hay tarjeta de favorito en inicio
     Cuando hago clic en el botón de ojo
     Entonces los valores de ingresos y ahorro aparecen difuminados

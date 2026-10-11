@@ -106,7 +106,7 @@ const SummaryPage = {
     catSection.dataset.analyticsGroup = 'categorias';
     let breakdownContent = catSection;
     if (options.categoryDisclosure) {
-      const details = create('details', { className: 'desktop-category-disclosure', open: true });
+      const details = create('details', { className: 'desktop-category-disclosure' });
       details.appendChild(create('summary', { textContent: 'Desglose por categoría' }));
       breakdownContent = create('div', { className: 'desktop-category-breakdown-scroll' });
       details.appendChild(breakdownContent);
@@ -465,7 +465,7 @@ const SummaryPage = {
     const dpr = window.devicePixelRatio || 1;
     const compact = Boolean(canvas.closest('.desktop-favorite-replica'));
     const w = canvas.parentElement.clientWidth - (compact ? 16 : 48);
-    const h = 200;
+    const h = compact ? 46 : 200;
     if (w <= 0) return;
 
     canvas.width = w * dpr;
@@ -475,7 +475,7 @@ const SummaryPage = {
     ctx.scale(dpr, dpr);
 
     const padding = compact
-      ? { top: 8, right: 6, bottom: 26, left: 38 }
+      ? { top: 3, right: 4, bottom: 12, left: 30 }
       : { top: 10, right: 10, bottom: 30, left: 60 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
@@ -494,19 +494,21 @@ const SummaryPage = {
 
     ctx.strokeStyle = '#2a2a4a';
     ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = padding.top + (chartH / 4) * i;
+    const gridSteps = compact ? 2 : 4;
+    for (let i = 0; i <= gridSteps; i++) {
+      const y = padding.top + (chartH / gridSteps) * i;
       ctx.beginPath();
       ctx.moveTo(padding.left, y);
       ctx.lineTo(w - padding.right, y);
       ctx.stroke();
 
-      const val = maxVal - (maxVal / 4) * i;
+      const val = maxVal - (maxVal / gridSteps) * i;
       ctx.fillStyle = '#6c6c7c';
       ctx.font = '10px -apple-system, sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText(formatearEuro(val), padding.left - 8, y);
+      ctx.font = compact ? '8px -apple-system, sans-serif' : '10px -apple-system, sans-serif';
+      ctx.fillText(formatearEuro(val), padding.left - (compact ? 5 : 8), y);
     }
 
     const drawLine = (data, color) => {
@@ -527,7 +529,7 @@ const SummaryPage = {
         const y = padding.top + chartH - (d.cumulative / maxVal) * chartH;
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.arc(x, y, compact ? 2 : 3, 0, Math.PI * 2);
         ctx.fill();
       });
     };
@@ -563,7 +565,7 @@ const SummaryPage = {
     ctx.fillStyle = '#FF6B6B';
     ctx.font = '9px -apple-system, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Hoy', todayX, padding.top + chartH + 12);
+    ctx.fillText('Hoy', todayX, padding.top + chartH + (compact ? 7 : 12));
 
     const series = [
       ...averageByDay.map(point => ({ ...point, label: 'Promedio' })),

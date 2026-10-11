@@ -9,6 +9,11 @@ When('creo un ingreso {string} de {float} con clasificación {string}', async fu
   await homePage.createIncome(titulo, monto, clasificacion as 'A' | 'B' | 'Mixto');
 });
 
+When('creo un ingreso {string} de {float} con clasificación {string} y con IVA cero', async function (this: PateSystemWorld, titulo: string, monto: number, clasificacion: string) {
+  const homePage = new HomePage(this.page!);
+  await homePage.createIncome(titulo, monto, clasificacion as 'A' | 'B' | 'Mixto', { ivaPorcentaje: 0 });
+});
+
 When('creo un ingreso {string} de {float} con clasificación {string} desglosado {float} en A y {float} en B', async function (
   this: PateSystemWorld,
   titulo: string,
@@ -203,14 +208,29 @@ Then('el favorito heredado de desglose por categoría se descarta', async functi
   await homePage.expectNoPersistedCategoryBreakdownFavorite();
 });
 
-When('anoto la altura actual de la fila KPI', async function (this: PateSystemWorld) {
+Then('la réplica favorita es compacta, sin desplazamiento interno y amplía la fila KPI como máximo un 10 por ciento', async function (this: PateSystemWorld) {
   const homePage = new HomePage(this.page!);
-  await homePage.storeDesktopStatsRowHeight();
+  await homePage.expectFavoriteReplicaCompactWithoutScrolling();
 });
 
-Then('la réplica favorita es compacta, desplazable y no agranda la fila KPI', async function (this: PateSystemWorld) {
+Then('la leyenda de la réplica favorita contiene {string}', async function (this: PateSystemWorld, value: string) {
   const homePage = new HomePage(this.page!);
-  await homePage.expectFavoriteReplicaCompactAndScrollable();
+  await homePage.expectFavoriteLegendContains(value);
+});
+
+Then('el desglose por categoría está contraído y se abre y cierra con teclado', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectCategoryBreakdownDisclosureKeyboardToggle();
+});
+
+Then('el selector muestra mes y año completos sin preposición', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectMonthLabelHasFullMonthAndYear();
+});
+
+Then('la estrella de IVA cero queda dentro de la tarjeta sin tapar el texto', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectIvaFavoriteStarInsideZeroValueCard();
 });
 
 Then('la página no tiene desbordamiento horizontal', async function (this: PateSystemWorld) {

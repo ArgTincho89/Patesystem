@@ -76,6 +76,8 @@ const Charts = {
   drawDonut(canvas, segments, size) {
     canvas.__chartRender = target => this.drawDonut(target, segments, size);
     canvas.__chartDraw = () => this.drawDonut(canvas, segments, size);
+    const compact = Boolean(canvas.closest('.desktop-favorite-replica'));
+    if (compact) size = 60;
     size = Math.min(size, canvas.parentElement.clientWidth || size);
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
@@ -109,13 +111,13 @@ const Charts = {
     });
 
     ctx.fillStyle = '#e8e8e8';
-    ctx.font = 'bold 16px -apple-system, sans-serif';
+    ctx.font = compact ? 'bold 8px -apple-system, sans-serif' : 'bold 16px -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(formatearEuro(total), cx, cy - 8);
-    ctx.font = '11px -apple-system, sans-serif';
+    ctx.fillText(formatearEuro(total), cx, cy - (compact ? 4 : 8));
+    ctx.font = compact ? '7px -apple-system, sans-serif' : '11px -apple-system, sans-serif';
     ctx.fillStyle = '#a0a0b0';
-    ctx.fillText('Total', cx, cy + 10);
+    ctx.fillText('Total', cx, cy + (compact ? 5 : 10));
 
     const points = segments.map(segment => ({
       text: `${segment.label}: ${formatearEuro(segment.value)} (${((segment.value / total) * 100).toFixed(1)}%)`,
@@ -151,7 +153,7 @@ const Charts = {
     const dpr = window.devicePixelRatio || 1;
     const compact = Boolean(canvas.closest('.desktop-favorite-replica'));
     const w = canvas.parentElement.clientWidth - (compact ? 16 : 48);
-    const h = options.height || 180;
+    const h = compact ? 54 : options.height || 180;
     if (w <= 0) return;
 
     canvas.width = w * dpr;
@@ -163,7 +165,7 @@ const Charts = {
     if (!data.length) return;
 
     const padding = compact
-      ? { top: 8, right: 6, bottom: 30, left: 38 }
+      ? { top: 4, right: 4, bottom: 18, left: 32 }
       : { top: 10, right: 10, bottom: 40, left: 60 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
@@ -175,19 +177,20 @@ const Charts = {
 
     ctx.strokeStyle = '#2a2a4a';
     ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = padding.top + (chartH / 4) * i;
+    const gridSteps = compact ? 2 : 4;
+    for (let i = 0; i <= gridSteps; i++) {
+      const y = padding.top + (chartH / gridSteps) * i;
       ctx.beginPath();
       ctx.moveTo(padding.left, y);
       ctx.lineTo(w - padding.right, y);
       ctx.stroke();
 
-      const val = maxVal - (maxVal / 4) * i;
+      const val = maxVal - (maxVal / gridSteps) * i;
       ctx.fillStyle = '#6c6c7c';
-      ctx.font = '10px -apple-system, sans-serif';
+      ctx.font = compact ? '8px -apple-system, sans-serif' : '10px -apple-system, sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-       ctx.fillText(formatearEuro(val), padding.left - 8, y);
+       ctx.fillText(formatearEuro(val), padding.left - (compact ? 5 : 8), y);
     }
 
     data.forEach((d, i) => {
@@ -208,7 +211,7 @@ const Charts = {
       ctx.fill();
 
       ctx.fillStyle = '#6c6c7c';
-      ctx.font = '10px -apple-system, sans-serif';
+      ctx.font = compact ? '8px -apple-system, sans-serif' : '10px -apple-system, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       const label = d.label.length > 6 ? d.label.slice(0, 5) + '.' : d.label;
@@ -240,7 +243,7 @@ const Charts = {
     const dpr = window.devicePixelRatio || 1;
     const compact = Boolean(canvas.closest('.desktop-favorite-replica'));
     const w = canvas.parentElement.clientWidth - (compact ? 16 : 48);
-    const h = options.height || 200;
+    const h = compact ? 54 : options.height || 200;
     if (w <= 0) return;
 
     canvas.width = w * dpr;
@@ -252,7 +255,7 @@ const Charts = {
     if (!datasets.length || !labels.length) return;
 
     const padding = compact
-      ? { top: 8, right: 6, bottom: 30, left: 38 }
+      ? { top: 4, right: 4, bottom: 18, left: 32 }
       : { top: 10, right: 10, bottom: 40, left: 60 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
@@ -264,19 +267,20 @@ const Charts = {
 
     ctx.strokeStyle = '#2a2a4a';
     ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = padding.top + (chartH / 4) * i;
+    const gridSteps = compact ? 2 : 4;
+    for (let i = 0; i <= gridSteps; i++) {
+      const y = padding.top + (chartH / gridSteps) * i;
       ctx.beginPath();
       ctx.moveTo(padding.left, y);
       ctx.lineTo(w - padding.right, y);
       ctx.stroke();
 
-      const val = maxVal - (range / 4) * i;
+      const val = maxVal - (range / gridSteps) * i;
       ctx.fillStyle = '#6c6c7c';
-      ctx.font = '10px -apple-system, sans-serif';
+      ctx.font = compact ? '8px -apple-system, sans-serif' : '10px -apple-system, sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-       ctx.fillText(options.valueFormatter ? options.valueFormatter(val) : formatearEuro(val), padding.left - 8, y);
+       ctx.fillText(options.valueFormatter ? options.valueFormatter(val) : formatearEuro(val), padding.left - (compact ? 5 : 8), y);
     }
 
     const gap = chartW / (labels.length - 1 || 1);
@@ -299,15 +303,17 @@ const Charts = {
         const y = padding.top + chartH - ((val - minVal) / range) * chartH;
         ctx.fillStyle = ds.color;
         ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.arc(x, y, compact ? 2 : 4, 0, Math.PI * 2);
         ctx.fill();
       });
     });
 
+    const labelStep = compact ? Math.ceil(labels.length / Math.max(2, Math.floor(chartW / 26))) : 1;
     labels.forEach((label, i) => {
+      if (i % labelStep !== 0 && i !== labels.length - 1) return;
       const x = padding.left + gap * i;
       ctx.fillStyle = '#6c6c7c';
-      ctx.font = '10px -apple-system, sans-serif';
+      ctx.font = compact ? '8px -apple-system, sans-serif' : '10px -apple-system, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillText(label, x, padding.top + chartH + 8);
