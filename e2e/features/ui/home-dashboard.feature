@@ -42,35 +42,47 @@ Característica: Dashboard de inicio
     Entonces los valores de ingresos y ahorro no aparecen difuminados
     Y no hay errores críticos en la consola
 
-  Escenario: Favorito, controles y secciones analíticas en escritorio
+  Escenario: Favoritos analíticos, controles y tooltips en escritorio
     Cuando abro la página de inicio
     Y configuro el inicio en modo escritorio
     Entonces aparecen tres tarjetas principales
+    Y las tres métricas principales no tienen estrellas
     Y las métricas tienen iconos decorativos y el botón dice Nueva transacción
     Y los controles de inicio aparecen en el orden requerido
+    Y el acceso de Resumen no aparece en la navegación de escritorio
+    Y el selector de mes está centrado y destacado
     Cuando creo un ingreso "Favorito sueldo" de 2100 con clasificación "A"
-    Y marco "Ahorro" como favorito en inicio
-    Entonces el favorito de inicio es "Ahorro"
-    Cuando marco "Ingresos" como favorito en inicio
-    Entonces el favorito de inicio es "Ingresos"
-    Y el icono del favorito corresponde a "Ingresos"
-    Y el favorito refleja el importe actual de "Ingresos"
+    Y creo un gasto en "Dashboard UI" llamado "Favorito compra" por 500
+    Entonces el tooltip del gráfico "Resumen del mes" muestra datos de euros y porcentajes
+    Y el tooltip del gráfico "Ritmo de gasto" muestra un valor en euros
+    Cuando abro la pestaña de analítica "Categorías"
+    Entonces el tooltip del gráfico "Distribución de gastos" muestra datos de euros y porcentajes
+    Y el tooltip del gráfico "Distribución de gastos" se puede explorar con teclado
+    Cuando marco "Distribución de gastos" como favorito analítico
+    Entonces el favorito analítico de inicio es "Distribución de gastos"
+    Y la réplica favorita contiene un gráfico interactivo
+    Y el tooltip del gráfico "Distribución de gastos" muestra datos de euros y porcentajes
     Cuando navego al mes anterior
-    Entonces el favorito refleja el importe actual de "Ingresos"
+    Entonces el favorito analítico de inicio es "Distribución de gastos"
+    Y no hay datos para el favorito analítico del período actual
     Cuando navego al mes siguiente
-    Entonces el favorito refleja el importe actual de "Ingresos"
-    Cuando marco "Ingresos" como favorito en inicio
+    Entonces la réplica favorita contiene un gráfico interactivo
+    Cuando marco "Fijo vs Variable" como favorito analítico
+    Entonces el favorito analítico de inicio es "Fijo vs Variable"
+    Y la réplica favorita contiene un gráfico interactivo
+    Cuando quito el favorito analítico "Fijo vs Variable"
     Entonces no hay tarjeta de favorito en inicio
-    Cuando marco "Gastos" como favorito en inicio
-    Y hago clic en el botón de ojo
+    Cuando hago clic en el botón de ojo
     Entonces los valores de ingresos y ahorro aparecen difuminados
     Y la privacidad indica importes ocultos
     Cuando hago clic en el botón de ojo
-    Entonces la privacidad indica importes visibles
-    Cuando abro la pestaña de analítica "Categorías"
-    Entonces la pestaña de analítica "Categorías" queda seleccionada
+    Entonces los valores de ingresos y ahorro no aparecen difuminados
+    Y la privacidad indica importes visibles
     Cuando abro la pestaña de analítica "Evolución"
-    Entonces la pestaña de analítica "Evolución" queda seleccionada
+    Entonces el tooltip del gráfico "Evolución del ahorro" muestra un valor en euros
+    Y el tooltip del gráfico "Evolución porcentual A vs B" muestra porcentajes
+    Cuando abro la pestaña de analítica "Resumen"
+    Entonces la pestaña de analítica "Resumen" queda seleccionada
     Cuando abro la pestaña de analítica "Metas"
     Entonces la pestaña de analítica "Metas" queda seleccionada
     Cuando activo nueva transacción desde los controles de inicio
@@ -83,3 +95,6 @@ Característica: Dashboard de inicio
     Cuando abro la página de inicio
     Y mantengo el modo móvil en viewport 390
     Entonces el inicio móvil conserva su estructura
+    Y el acceso de Resumen está disponible en la navegación móvil
+    Cuando abro Resumen desde la navegación móvil
+    Entonces la ruta de Resumen sigue disponible

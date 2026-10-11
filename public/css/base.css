@@ -152,6 +152,10 @@ body.desktop-mode #navbar {
   overflow-y: auto;
 }
 
+body.desktop-mode #navbar .navbar-item[data-route="/summary"] {
+  display: none;
+}
+
 body.desktop-mode .navbar-item {
   width: 100%;
   min-width: 0;

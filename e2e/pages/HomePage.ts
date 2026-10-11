@@ -22,8 +22,10 @@ export class HomePage extends BasePage {
     desktopNewTransaction: '.desktop-new-transaction',
     controls: '.desktop-home-controls',
     analyticsTabs: '[role="tablist"]',
-    favoriteToggle: '.desktop-favorite-toggle',
+    favoriteToggle: '.analytics-favorite-toggle',
     favoriteCard: '.desktop-favorite-card',
+    favoriteReplica: '.desktop-favorite-replica',
+    chartTooltip: '.chart-tooltip',
   };
 
   constructor(page: Page) {
@@ -119,9 +121,6 @@ export class HomePage extends BasePage {
     if (await this.page.locator('body.desktop-mode').count()) {
       await expect(this.statCard('Gastos').locator('.stat-value')).toHaveClass(/income-blurred/);
     }
-    if (await this.page.locator(this.selectors.favoriteCard).count()) {
-      await expect(this.page.locator(this.selectors.favoriteCard).locator('.stat-value')).toHaveClass(/income-blurred/);
-    }
   }
 
   async expectValuesNotBlurred(): Promise<void> {
@@ -130,23 +129,102 @@ export class HomePage extends BasePage {
     if (await this.page.locator('body.desktop-mode').count()) {
       await expect(this.statCard('Gastos').locator('.stat-value')).not.toHaveClass(/income-blurred/);
     }
-    if (await this.page.locator(this.selectors.favoriteCard).count()) {
-      await expect(this.page.locator(this.selectors.favoriteCard).locator('.stat-value')).not.toHaveClass(/income-blurred/);
-    }
   }
 
-  async selectFavorite(label: 'Ingresos' | 'Gastos' | 'Ahorro'): Promise<void> {
-    const id = { Ingresos: 'ingresos', Gastos: 'gastos', Ahorro: 'ahorro' }[label];
-    await this.page.locator(`.desktop-stat-${id} .desktop-favorite-toggle`).click();
+  async selectAnalyticFavorite(label: string): Promise<void> {
+    await this.page.getByRole('button', { name: `Marcar ${label} como favorito` }).click();
   }
 
-  async expectFavorite(label: 'Ingresos' | 'Gastos' | 'Ahorro'): Promise<void> {
+  async clearAnalyticFavorite(label: string): Promise<void> {
+    await this.page.getByRole('button', { name: `Quitar ${label} de favoritos` }).click();
+  }
+
+  async expectAnalyticFavorite(label: string): Promise<void> {
     await expect(this.page.locator(this.selectors.favoriteCard)).toContainText(`Favorito · ${label}`);
   }
 
-  async expectFavoriteMatches(label: 'Ingresos' | 'Gastos' | 'Ahorro'): Promise<void> {
-    await expect(this.page.locator(this.selectors.favoriteCard).locator('.stat-value'))
-      .toHaveText(await this.getStatValue(label));
+  async expectFavoriteUnavailable(): Promise<void> {
+    await expect(this.page.locator(this.selectors.favoriteReplica)).toContainText('Este análisis no tiene datos en el período actual.');
+  }
+
+  async expectFavoriteReplicaChart(): Promise<void> {
+    await expect(this.page.locator(this.selectors.favoriteReplica).locator('canvas')).toHaveCount(1);
+    await expect(this.page.locator(this.selectors.favoriteReplica).locator('canvas')).toBeVisible();
+  }
+
+  async expectFixedMetricsHaveNoStars(): Promise<void> {
+    await expect(this.page.locator('.desktop-home-stats > .desktop-stat-card .analytics-favorite-toggle')).toHaveCount(0);
+    await expect(this.page.locator('.desktop-stat-card')).toHaveCount(3);
+  }
+
+  async expectDesktopSummaryNavigationHidden(): Promise<void> {
+    await expect(this.page.locator('.navbar-item[data-route="/summary"]')).toBeHidden();
+    await expect(this.page.getByRole('tab', { name: 'Resumen', exact: true })).toBeVisible();
+  }
+
+  async expectMobileSummaryNavigationAvailable(): Promise<void> {
+    await expect(this.page.locator('.navbar-item[data-route="/summary"]')).toBeVisible();
+  }
+
+  async openSummaryFromMobileNavigation(): Promise<void> {
+    await this.page.locator('.navbar-item[data-route="/summary"]').click();
+  }
+
+  async expectSummaryRouteAvailable(): Promise<void> {
+    await expect(this.page).toHaveURL(/#\/summary(?:\?|$)/);
+    await expect(this.page.locator('.stats-row')).toBeVisible();
+  }
+
+  async expectDesktopMonthCenteredAndLarger(): Promise<void> {
+    const layout = await this.page.locator(this.selectors.controls).evaluate(controls => {
+      const controlBounds = controls.getBoundingClientRect();
+      const month = controls.querySelector('.desktop-month-selector')!;
+      const monthBounds = month.getBoundingClientRect();
+      const label = month.querySelector('h2')!;
+      const actions = controls.querySelector('.desktop-control-actions')!;
+      const actionBounds = actions.getBoundingClientRect();
+      return {
+        centered: Math.abs((monthBounds.left + monthBounds.right) / 2 - (controlBounds.left + controlBounds.right) / 2) < 2,
+        larger: parseFloat(getComputedStyle(label).fontSize) > parseFloat(getComputedStyle(controls).fontSize),
+        separated: monthBounds.left >= actionBounds.right || monthBounds.right <= actionBounds.left,
+      };
+    });
+    expect(layout.centered).toBe(true);
+    expect(layout.larger).toBe(true);
+    expect(layout.separated).toBe(true);
+  }
+
+  async hoverChartPoint(label: string): Promise<string> {
+    const card = this.page.locator('[data-favorite-label]').filter({ hasText: label }).first();
+    const canvas = card.locator('canvas').first();
+    await expect(canvas).toBeVisible();
+    await canvas.scrollIntoViewIfNeeded();
+    await expect(canvas).toHaveAttribute('tabindex', '0');
+    const point = await canvas.evaluate(element => {
+      const chart = element as HTMLCanvasElement & { __chartHitTest?: (x: number, y: number) => unknown };
+      const width = chart.clientWidth;
+      const height = chart.clientHeight;
+      if (!chart.__chartHitTest) throw new Error('El gráfico no tiene hit testing configurado');
+      for (let y = 4; y < height; y += 4) {
+        for (let x = 4; x < width; x += 4) {
+          if (chart.__chartHitTest(x, y)) return { x, y };
+        }
+      }
+      throw new Error('No se encontró un punto interactivo en el gráfico');
+    });
+    await canvas.hover({ position: point });
+    const tooltip = card.locator(this.selectors.chartTooltip);
+    await expect(tooltip).toBeVisible();
+    return tooltip.innerText();
+  }
+
+  async expectChartTooltipKeyboard(label: string): Promise<void> {
+    const card = this.page.locator('[data-favorite-label]').filter({ hasText: label }).first();
+    const canvas = card.locator('canvas').first();
+    await expect(canvas).toHaveAttribute('tabindex', '0');
+    await canvas.focus();
+    await canvas.press('Enter');
+    await expect(card.locator(this.selectors.chartTooltip)).toBeVisible();
   }
 
   async openAnalyticsTab(label: string): Promise<void> {
@@ -158,13 +236,15 @@ export class HomePage extends BasePage {
     const order = await this.page.locator(this.selectors.controls).locator(':scope > *').evaluateAll(nodes =>
       nodes.map(node => node.classList.contains('desktop-new-transaction')
         ? 'Nueva transacción'
-        : node.classList.contains('desktop-eye-toggle')
-          ? 'Privacidad'
-          : node.classList.contains('desktop-filter-btn')
-            ? 'Filtro'
-            : node.classList.contains('desktop-month-selector') ? 'Mes' : 'Otro')
+        : node.classList.contains('desktop-control-actions')
+          ? Array.from(node.children, child => child.classList.contains('desktop-new-transaction')
+            ? 'Nueva transacción'
+            : child.classList.contains('desktop-eye-toggle')
+              ? 'Privacidad'
+              : child.classList.contains('desktop-filter-btn') ? 'Filtro' : 'Otro').join(',')
+          : node.classList.contains('desktop-month-selector') ? 'Mes' : 'Otro')
     );
-    expect(order).toEqual(['Nueva transacción', 'Privacidad', 'Filtro', 'Mes']);
+    expect(order).toEqual(['Nueva transacción,Privacidad,Filtro', 'Mes']);
   }
 
   async expectThreePrimaryCards(): Promise<void> {
@@ -183,13 +263,6 @@ export class HomePage extends BasePage {
     await expect(button).toHaveText('Nueva transacción');
   }
 
-  async expectFavoriteIcon(label: 'Ingresos' | 'Gastos' | 'Ahorro'): Promise<void> {
-    const id = { Ingresos: 'ingresos', Gastos: 'gastos', Ahorro: 'ahorro' }[label];
-    const icon = this.page.locator(`${this.selectors.favoriteCard} .desktop-stat-icon`);
-    await expect(icon).toHaveAttribute('data-metric-icon', id);
-    await expect(icon.locator('svg')).toHaveAttribute('aria-hidden', 'true');
-  }
-
   async expectPrivacyState(hidden: boolean): Promise<void> {
     const eye = this.page.locator(this.selectors.eyeToggle);
     await expect(eye).toHaveAttribute('aria-pressed', String(hidden));
@@ -199,11 +272,18 @@ export class HomePage extends BasePage {
   async expectDesktopLayoutWithinViewport(): Promise<void> {
     const withinViewport = await this.page.locator('#page-content').evaluate(element => {
       const bounds = element.getBoundingClientRect();
-      const cards = Array.from(element.querySelectorAll('.desktop-stat-card'), card => card.getBoundingClientRect());
+      const cards = Array.from(element.querySelectorAll('.desktop-home-stats > *'), card => card.getBoundingClientRect());
       const controls = element.querySelector('.desktop-home-controls')!.getBoundingClientRect();
+      const month = element.querySelector('.desktop-month-selector')!.getBoundingClientRect();
+      const actions = element.querySelector('.desktop-control-actions')!.getBoundingClientRect();
+      const overlap = month.left < actions.right && month.right > actions.left
+        && month.top < actions.bottom && month.bottom > actions.top;
+      const centered = Math.abs((month.left + month.right) / 2 - (controls.left + controls.right) / 2) < 2;
       return bounds.right <= window.innerWidth + 1
         && cards.every(card => card.width > 0 && card.right <= window.innerWidth + 1)
-        && controls.right <= window.innerWidth + 1;
+        && controls.right <= window.innerWidth + 1
+        && !overlap
+        && centered;
     });
     expect(withinViewport).toBe(true);
   }

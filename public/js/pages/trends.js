@@ -166,7 +166,11 @@ const EstadisticasPage = {
           catCard.appendChild(create('div', { className: 'chart-title', textContent: 'Distribución del mes' }));
 
           const donutWrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
-          const donutCanvas = create('canvas', { className: 'chart-canvas' });
+          const donutCanvas = create('canvas', {
+            className: 'chart-canvas',
+            role: 'img',
+            'aria-label': 'Gráfico de distribución de gastos del mes por categoría'
+          });
           donutWrapper.appendChild(donutCanvas);
           catCard.appendChild(donutWrapper);
 
@@ -208,6 +212,9 @@ const EstadisticasPage = {
 
   renderMonthOverviewInto(target, summary) {
     const monthCard = create('div', { className: 'chart-container' });
+    monthCard.dataset.favoriteType = 'month-overview';
+    monthCard.dataset.favoriteKey = 'month-overview';
+    monthCard.dataset.favoriteLabel = 'Resumen del mes';
     monthCard.appendChild(create('div', { className: 'chart-title', textContent: 'Resumen del mes' }));
 
     const monthChartWrapper = create('div');
@@ -256,6 +263,9 @@ const EstadisticasPage = {
 
     if (trends.monthlyData.length > 0) {
       const ahorroCard = create('div', { className: 'chart-container' });
+      ahorroCard.dataset.favoriteType = 'trend-savings';
+      ahorroCard.dataset.favoriteKey = 'trend-savings';
+      ahorroCard.dataset.favoriteLabel = 'Evolución del ahorro';
       ahorroCard.appendChild(create('div', { className: 'chart-title', textContent: 'Evolución del ahorro' }));
       const ahorroWrapper = create('div');
       const ahorroCanvas = create('canvas', { role: 'img', 'aria-label': 'Evolución mensual del ahorro' });
@@ -274,13 +284,17 @@ const EstadisticasPage = {
       requestAnimationFrame(() => {
         Charts.drawLineChart(ahorroCanvas, [{
           data: ahorroData,
-          color: '#4ECDC4'
+          color: '#4ECDC4',
+          label: 'Ahorro'
         }], labels, { height: 200 });
       });
 
       const catIds = Object.keys(trends.categoryTrends);
       if (catIds.length > 0) {
         const catCard = create('div', { className: 'chart-container' });
+        catCard.dataset.favoriteType = 'trend-category';
+        catCard.dataset.favoriteKey = 'trend-category';
+        catCard.dataset.favoriteLabel = 'Evolución por categoría';
         catCard.appendChild(create('div', { className: 'chart-title', textContent: 'Evolución por categoría' }));
         const catWrapper = create('div');
         const catCanvas = create('canvas', { role: 'img', 'aria-label': 'Evolución mensual de gastos por categoría' });
@@ -299,7 +313,8 @@ const EstadisticasPage = {
           }));
           return {
             data: trend.months.map(m => m.neto),
-            color: trend.color || '#6c6c7c'
+            color: trend.color || '#6c6c7c',
+            label: trend.nombre
           };
         });
 
@@ -312,6 +327,9 @@ const EstadisticasPage = {
       }
 
       const incomeCard = create('div', { className: 'chart-container' });
+      incomeCard.dataset.favoriteType = 'trend-income-ab';
+      incomeCard.dataset.favoriteKey = 'trend-income-ab';
+      incomeCard.dataset.favoriteLabel = 'Evolución porcentual A vs B';
       incomeCard.appendChild(create('div', { className: 'chart-title', textContent: 'Evolución porcentual A vs B' }));
       const incomeCanvas = create('canvas', { role: 'img', 'aria-label': 'Evolución porcentual mensual de ingresos A y B' });
       const incomeWrapper = create('div');
@@ -323,11 +341,14 @@ const EstadisticasPage = {
       incomeCard.appendChild(incomeLegend);
       target.appendChild(incomeCard);
       requestAnimationFrame(() => Charts.drawLineChart(incomeCanvas, [
-        { data: trends.monthlyData.map(d => d.porcentajeA), color: '#4ECDC4' },
-        { data: trends.monthlyData.map(d => d.porcentajeB), color: '#FF6B6B' }
+        { data: trends.monthlyData.map(d => d.porcentajeA), color: '#4ECDC4', label: 'A' },
+        { data: trends.monthlyData.map(d => d.porcentajeB), color: '#FF6B6B', label: 'B' }
       ], labels, { height: 200, valueFormatter: value => `${value.toFixed(0)}%` }));
 
       const ivaCard = create('div', { className: 'chart-container' });
+      ivaCard.dataset.favoriteType = 'trend-iva';
+      ivaCard.dataset.favoriteKey = 'trend-iva';
+      ivaCard.dataset.favoriteLabel = 'IVA acumulado por mes';
       ivaCard.appendChild(create('div', { className: 'chart-title', textContent: 'IVA acumulado por mes' }));
       const ivaWrapper = create('div');
       const ivaCanvas = create('canvas', { role: 'img', 'aria-label': 'IVA acumulado en cada mes del período' });
@@ -341,7 +362,7 @@ const EstadisticasPage = {
         value: d.ivaAcumulado || 0,
         color: '#FFE66D',
         label: labels[i]
-      })), { height: 180 }));
+      })), { height: 180, seriesLabel: 'IVA acumulado' }));
     } else {
       target.appendChild(create('div', {
         className: 'empty-state',

@@ -48,6 +48,9 @@ const SummaryPage = {
       goals.forEach(goal => {
         const goalCard = this.renderGoalProgress(goal, summary);
         goalCard.dataset.analyticsGroup = 'metas';
+        goalCard.dataset.favoriteType = 'goal';
+        goalCard.dataset.favoriteKey = String(goal.id ?? `${goal.tipo}:${goal.categoryId ?? goal.modo ?? 'general'}`);
+        goalCard.dataset.favoriteLabel = goalCard.querySelector('.goal-progress-label')?.textContent || 'Meta';
         content.appendChild(goalCard);
       });
     }
@@ -55,6 +58,9 @@ const SummaryPage = {
     if (burnRate && burnRate.currentMonth && burnRate.currentMonth.length > 0) {
       const burnCard = this.renderBurnRate(burnRate);
       burnCard.dataset.analyticsGroup = 'resumen';
+      burnCard.dataset.favoriteType = 'burn-rate';
+      burnCard.dataset.favoriteKey = 'burn-rate';
+      burnCard.dataset.favoriteLabel = 'Ritmo de gasto';
       content.appendChild(burnCard);
     }
 
@@ -63,6 +69,9 @@ const SummaryPage = {
     if (chartCats.length > 0) {
       const chartCard = create('div', { className: 'chart-container' });
       chartCard.dataset.analyticsGroup = 'categorias';
+      chartCard.dataset.favoriteType = 'category-chart';
+      chartCard.dataset.favoriteKey = 'expense-distribution';
+      chartCard.dataset.favoriteLabel = 'Distribución de gastos';
       chartCard.appendChild(create('div', { className: 'chart-title', textContent: 'Distribución de gastos' }));
 
       const chartWrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
@@ -95,6 +104,9 @@ const SummaryPage = {
 
     const catSection = create('div', { className: 'summary-section' });
     catSection.dataset.analyticsGroup = 'categorias';
+    catSection.dataset.favoriteType = 'category-breakdown';
+    catSection.dataset.favoriteKey = 'category-breakdown';
+    catSection.dataset.favoriteLabel = 'Desglose por categoría';
     let breakdownContent = catSection;
     if (options.categoryDisclosure) {
       const details = create('details', { className: 'desktop-category-disclosure', open: true });
@@ -148,6 +160,9 @@ const SummaryPage = {
     if (summary.fijos > 0 || summary.variables > 0) {
       const fvCard = create('div', { className: 'chart-container' });
       fvCard.dataset.analyticsGroup = 'categorias';
+      fvCard.dataset.favoriteType = 'expense-split';
+      fvCard.dataset.favoriteKey = 'fixed-variable';
+      fvCard.dataset.favoriteLabel = 'Fijo vs Variable';
       fvCard.appendChild(create('div', { className: 'chart-title', textContent: 'Fijo vs Variable' }));
 
       const fvWrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
@@ -186,6 +201,9 @@ const SummaryPage = {
     if (summary.ingresos > 0) {
       const incomeCard = create('div', { className: 'chart-container' });
       incomeCard.dataset.analyticsGroup = 'categorias';
+      incomeCard.dataset.favoriteType = 'income-split';
+      incomeCard.dataset.favoriteKey = 'income-ab';
+      incomeCard.dataset.favoriteLabel = 'Ingresos A vs B';
       incomeCard.appendChild(create('div', { className: 'chart-title', textContent: 'Ingresos A vs B' }));
       const wrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
       const canvas = create('canvas', { className: 'chart-canvas', role: 'img', 'aria-label': 'Gráfico de ingresos A y B' });
@@ -205,6 +223,9 @@ const SummaryPage = {
 
     const ivaBadge = this.createIvaBadge(summary);
     ivaBadge.dataset.analyticsGroup = 'categorias';
+    ivaBadge.dataset.favoriteType = 'iva-summary';
+    ivaBadge.dataset.favoriteKey = 'iva-summary';
+    ivaBadge.dataset.favoriteLabel = 'IVA acumulado';
     content.appendChild(ivaBadge);
   },
 
@@ -441,10 +462,12 @@ const SummaryPage = {
   },
 
   drawBurnRateChart(canvas, burnRate) {
+    canvas.__chartRender = target => this.drawBurnRateChart(target, burnRate);
     canvas.__chartDraw = () => this.drawBurnRateChart(canvas, burnRate);
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const w = canvas.parentElement.clientWidth - 48;
+    const compact = Boolean(canvas.closest('.desktop-favorite-replica'));
+    const w = canvas.parentElement.clientWidth - (compact ? 16 : 48);
     const h = 200;
     if (w <= 0) return;
 
@@ -454,7 +477,9 @@ const SummaryPage = {
     canvas.style.height = h + 'px';
     ctx.scale(dpr, dpr);
 
-    const padding = { top: 10, right: 10, bottom: 30, left: 60 };
+    const padding = compact
+      ? { top: 8, right: 6, bottom: 26, left: 38 }
+      : { top: 10, right: 10, bottom: 30, left: 60 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
 
@@ -510,6 +535,7 @@ const SummaryPage = {
       });
     };
 
+    let averageByDay = [];
     if (burnRate.historical && burnRate.historical.length > 0) {
       const grouped = {};
       burnRate.historical.forEach(d => {
@@ -521,6 +547,7 @@ const SummaryPage = {
         cumulative: vals.reduce((a, b) => a + b, 0) / vals.length
       })).sort((a, b) => a.day - b.day);
       drawLine(avgData, '#6c6c7c');
+      averageByDay = avgData;
     }
 
     drawLine(burnRate.currentMonth, '#4ECDC4');
@@ -540,6 +567,30 @@ const SummaryPage = {
     ctx.font = '9px -apple-system, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('Hoy', todayX, padding.top + chartH + 12);
+
+    const series = [
+      ...averageByDay.map(point => ({ ...point, label: 'Promedio' })),
+      ...burnRate.currentMonth.map(point => ({ ...point, label: 'Este mes' }))
+    ];
+    const pointAt = point => ({
+      x: padding.left + ((point.day - 1) / (maxDay - 1 || 1)) * chartW,
+      y: padding.top + chartH - (point.cumulative / maxVal) * chartH,
+      text: `${point.label} · Día ${point.day}: ${formatearEuro(point.cumulative)}`
+    });
+    const accessiblePoints = series.map(pointAt);
+    Charts.bindTooltip(canvas, (x, y) => {
+      let nearest = null;
+      let distance = Infinity;
+      series.forEach(point => {
+        const candidate = pointAt(point);
+        const candidateDistance = Math.hypot(candidate.x - x, candidate.y - y);
+        if (candidateDistance < distance) {
+          distance = candidateDistance;
+          nearest = candidate;
+        }
+      });
+      return distance <= 12 ? nearest : null;
+    }, accessiblePoints);
   },
 
   createStat(label, value, color) {

@@ -4,8 +4,79 @@ const Charts = {
     container.querySelectorAll('canvas').forEach(canvas => canvas.__chartDraw?.());
   },
 
+  copyCanvas(source, target) {
+    if (!source?.__chartRender) return;
+    target.__chartRender = source.__chartRender;
+    target.__chartDraw = () => target.__chartRender(target);
+    target.__chartDraw();
+  },
+
+  bindTooltip(canvas, hitTest, accessiblePoints) {
+    canvas.__chartHitTest = hitTest;
+    canvas.__chartAccessiblePoints = accessiblePoints || [];
+    canvas.tabIndex = 0;
+    canvas.setAttribute('aria-keyshortcuts', 'ArrowLeft ArrowRight Enter Escape');
+    canvas.setAttribute('aria-description', 'Pasa el puntero sobre los datos o usa las flechas y Enter para explorar. Escape oculta el detalle.');
+
+    if (!canvas.__chartTooltip) {
+      const tooltip = document.createElement('div');
+      tooltip.className = 'chart-tooltip';
+      tooltip.id = `chart-tooltip-${Math.random().toString(36).slice(2)}`;
+      tooltip.setAttribute('role', 'status');
+      tooltip.setAttribute('aria-live', 'polite');
+      tooltip.hidden = true;
+      canvas.parentElement.style.position = 'relative';
+      canvas.parentElement.appendChild(tooltip);
+      canvas.__chartTooltip = tooltip;
+      canvas.setAttribute('aria-describedby', tooltip.id);
+
+      const hide = () => {
+        tooltip.hidden = true;
+      };
+      const show = (point) => {
+        if (!point) return hide();
+        tooltip.textContent = point.text;
+        tooltip.hidden = false;
+        const parentRect = canvas.parentElement.getBoundingClientRect();
+        const canvasRect = canvas.getBoundingClientRect();
+        const x = canvasRect.left - parentRect.left + (point.x ?? canvas.clientWidth / 2);
+        const y = canvasRect.top - parentRect.top + (point.y ?? 12);
+        tooltip.style.left = `${Math.max(8, Math.min(x, Math.max(8, parentRect.width - 180)))}px`;
+        tooltip.style.top = `${Math.max(4, Math.min(y, Math.max(4, parentRect.height - 54)))}px`;
+      };
+      canvas.addEventListener('pointermove', event => {
+        const rect = canvas.getBoundingClientRect();
+        const x = (event.clientX - rect.left) * (canvas.clientWidth / rect.width);
+        const y = (event.clientY - rect.top) * (canvas.clientHeight / rect.height);
+        show(canvas.__chartHitTest?.(x, y));
+      });
+      canvas.addEventListener('pointerleave', hide);
+      canvas.addEventListener('blur', hide);
+      canvas.addEventListener('keydown', event => {
+        const points = canvas.__chartAccessiblePoints || [];
+        if (event.key === 'Escape') {
+          hide();
+          return;
+        }
+        if (!points.length || !['ArrowRight', 'ArrowLeft', 'Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        if (event.key === 'Enter' || event.key === ' ') {
+          canvas.__chartKeyboardIndex = canvas.__chartKeyboardIndex ?? 0;
+        } else {
+          const direction = event.key === 'ArrowRight' ? 1 : -1;
+          const index = canvas.__chartKeyboardIndex ?? (direction > 0 ? -1 : 0);
+          canvas.__chartKeyboardIndex = (index + direction + points.length) % points.length;
+        }
+        const point = points[canvas.__chartKeyboardIndex];
+        show(point);
+      });
+    }
+  },
+
   drawDonut(canvas, segments, size) {
+    canvas.__chartRender = target => this.drawDonut(target, segments, size);
     canvas.__chartDraw = () => this.drawDonut(canvas, segments, size);
+    size = Math.min(size, canvas.parentElement.clientWidth || size);
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     canvas.width = size * dpr;
@@ -45,13 +116,41 @@ const Charts = {
     ctx.font = '11px -apple-system, sans-serif';
     ctx.fillStyle = '#a0a0b0';
     ctx.fillText('Total', cx, cy + 10);
+
+    const points = segments.map(segment => ({
+      text: `${segment.label}: ${formatearEuro(segment.value)} (${((segment.value / total) * 100).toFixed(1)}%)`,
+      x: cx,
+      y: cy
+    }));
+    this.bindTooltip(canvas, (x, y) => {
+      const dx = x - cx;
+      const dy = y - cy;
+      const distance = Math.hypot(dx, dy);
+      if (distance < innerRadius || distance > radius) return null;
+      let angle = Math.atan2(dy, dx) + Math.PI / 2;
+      if (angle < 0) angle += Math.PI * 2;
+      let accumulated = 0;
+      for (const segment of segments) {
+        accumulated += (segment.value / total) * Math.PI * 2;
+        if (angle <= accumulated) {
+          return {
+            text: `${segment.label}: ${formatearEuro(segment.value)} (${((segment.value / total) * 100).toFixed(1)}%)`,
+            x,
+            y
+          };
+        }
+      }
+      return null;
+    }, points);
   },
 
   drawBarChart(canvas, data, options = {}) {
+    canvas.__chartRender = target => this.drawBarChart(target, data, options);
     canvas.__chartDraw = () => this.drawBarChart(canvas, data, options);
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const w = canvas.parentElement.clientWidth - 48;
+    const compact = Boolean(canvas.closest('.desktop-favorite-replica'));
+    const w = canvas.parentElement.clientWidth - (compact ? 16 : 48);
     const h = options.height || 180;
     if (w <= 0) return;
 
@@ -63,7 +162,9 @@ const Charts = {
 
     if (!data.length) return;
 
-    const padding = { top: 10, right: 10, bottom: 40, left: 60 };
+    const padding = compact
+      ? { top: 8, right: 6, bottom: 30, left: 38 }
+      : { top: 10, right: 10, bottom: 40, left: 60 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
 
@@ -113,13 +214,32 @@ const Charts = {
       const label = d.label.length > 6 ? d.label.slice(0, 5) + '.' : d.label;
       ctx.fillText(label, x + barWidth / 2, padding.top + chartH + 8);
     });
+
+    const total = data.reduce((sum, item) => sum + Math.abs(item.value), 0);
+    const points = data.map((item, index) => ({
+      text: `${options.seriesLabel ? `${options.seriesLabel} · ` : ''}${item.label}: ${formatearEuro(item.value)}${total > 0 ? ` (${((Math.abs(item.value) / total) * 100).toFixed(1)}%)` : ''}`,
+      x: padding.left + gap * index + gap / 2,
+      y: padding.top + chartH / 2
+    }));
+    this.bindTooltip(canvas, (x, y) => {
+      const index = Math.floor((x - padding.left) / gap);
+      if (index < 0 || index >= data.length) return null;
+      const item = data[index];
+      const barX = padding.left + gap * index + (gap - barWidth) / 2;
+      const barHeight = (item.value / maxVal) * chartH;
+      const barY = padding.top + chartH - barHeight;
+      if (x < barX || x > barX + barWidth || y < barY || y > padding.top + chartH) return null;
+      return points[index];
+    }, points);
   },
 
   drawLineChart(canvas, datasets, labels, options = {}) {
+    canvas.__chartRender = target => this.drawLineChart(target, datasets, labels, options);
     canvas.__chartDraw = () => this.drawLineChart(canvas, datasets, labels, options);
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
-    const w = canvas.parentElement.clientWidth - 48;
+    const compact = Boolean(canvas.closest('.desktop-favorite-replica'));
+    const w = canvas.parentElement.clientWidth - (compact ? 16 : 48);
     const h = options.height || 200;
     if (w <= 0) return;
 
@@ -131,7 +251,9 @@ const Charts = {
 
     if (!datasets.length || !labels.length) return;
 
-    const padding = { top: 10, right: 10, bottom: 40, left: 60 };
+    const padding = compact
+      ? { top: 8, right: 6, bottom: 30, left: 38 }
+      : { top: 10, right: 10, bottom: 40, left: 60 };
     const chartW = w - padding.left - padding.right;
     const chartH = h - padding.top - padding.bottom;
 
@@ -190,5 +312,29 @@ const Charts = {
       ctx.textBaseline = 'top';
       ctx.fillText(label, x, padding.top + chartH + 8);
     });
+
+    const points = datasets.flatMap(dataset => dataset.data.map((value, index) => ({
+      text: `${dataset.label || 'Serie'} · ${labels[index]}: ${options.valueFormatter ? options.valueFormatter(value) : formatearEuro(value)}`,
+      x: padding.left + gap * index,
+      y: padding.top + chartH - ((value - minVal) / range) * chartH
+    })));
+    this.bindTooltip(canvas, (x, y) => {
+      let nearest = null;
+      let distance = Infinity;
+      datasets.forEach(dataset => dataset.data.forEach((value, index) => {
+        const px = padding.left + gap * index;
+        const py = padding.top + chartH - ((value - minVal) / range) * chartH;
+        const candidateDistance = Math.hypot(px - x, py - y);
+        if (candidateDistance < distance) {
+          distance = candidateDistance;
+          nearest = {
+            text: `${dataset.label || 'Serie'} · ${labels[index]}: ${options.valueFormatter ? options.valueFormatter(value) : formatearEuro(value)}`,
+            x: px,
+            y: py
+          };
+        }
+      }));
+      return distance <= 12 ? nearest : null;
+    }, points);
   }
 };

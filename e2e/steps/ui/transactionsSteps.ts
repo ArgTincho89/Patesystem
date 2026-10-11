@@ -66,9 +66,14 @@ When('hago clic en el botón de ojo', async function (this: PateSystemWorld) {
   await homePage.toggleEye();
 });
 
-When('marco {string} como favorito en inicio', async function (this: PateSystemWorld, label: string) {
+When('marco {string} como favorito analítico', async function (this: PateSystemWorld, label: string) {
   const homePage = new HomePage(this.page!);
-  await homePage.selectFavorite(label as 'Ingresos' | 'Gastos' | 'Ahorro');
+  await homePage.selectAnalyticFavorite(label);
+});
+
+When('quito el favorito analítico {string}', async function (this: PateSystemWorld, label: string) {
+  const homePage = new HomePage(this.page!);
+  await homePage.clearAnalyticFavorite(label);
 });
 
 When('abro la pestaña de analítica {string}', async function (this: PateSystemWorld, label: string) {
@@ -124,14 +129,19 @@ Then('los valores de ingresos y ahorro no aparecen difuminados', async function 
   await homePage.expectValuesNotBlurred();
 });
 
-Then('el favorito de inicio es {string}', async function (this: PateSystemWorld, label: string) {
+Then('el favorito analítico de inicio es {string}', async function (this: PateSystemWorld, label: string) {
   const homePage = new HomePage(this.page!);
-  await homePage.expectFavorite(label as 'Ingresos' | 'Gastos' | 'Ahorro');
+  await homePage.expectAnalyticFavorite(label);
 });
 
-Then('el favorito refleja el importe actual de {string}', async function (this: PateSystemWorld, label: string) {
+Then('no hay datos para el favorito analítico del período actual', async function (this: PateSystemWorld) {
   const homePage = new HomePage(this.page!);
-  await homePage.expectFavoriteMatches(label as 'Ingresos' | 'Gastos' | 'Ahorro');
+  await homePage.expectFavoriteUnavailable();
+});
+
+Then('la réplica favorita contiene un gráfico interactivo', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectFavoriteReplicaChart();
 });
 
 Then('no hay tarjeta de favorito en inicio', async function (this: PateSystemWorld) {
@@ -153,9 +163,43 @@ Then('las métricas tienen iconos decorativos y el botón dice Nueva transacció
   await homePage.expectDesktopMetricIconsAndTransactionLabel();
 });
 
-Then('el icono del favorito corresponde a {string}', async function (this: PateSystemWorld, label: string) {
+Then('las tres métricas principales no tienen estrellas', async function (this: PateSystemWorld) {
   const homePage = new HomePage(this.page!);
-  await homePage.expectFavoriteIcon(label as 'Ingresos' | 'Gastos' | 'Ahorro');
+  await homePage.expectFixedMetricsHaveNoStars();
+});
+
+Then('el acceso de Resumen no aparece en la navegación de escritorio', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectDesktopSummaryNavigationHidden();
+});
+
+Then('el selector de mes está centrado y destacado', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectDesktopMonthCenteredAndLarger();
+});
+
+Then('el tooltip del gráfico {string} muestra datos de euros y porcentajes', async function (this: PateSystemWorld, label: string) {
+  const homePage = new HomePage(this.page!);
+  const tooltip = await homePage.hoverChartPoint(label);
+  expect(tooltip).toMatch(/\d[\d.,]*\s?€/);
+  expect(tooltip).toMatch(/\d[\d.,]*%/);
+});
+
+Then('el tooltip del gráfico {string} muestra un valor en euros', async function (this: PateSystemWorld, label: string) {
+  const homePage = new HomePage(this.page!);
+  const tooltip = await homePage.hoverChartPoint(label);
+  expect(tooltip).toMatch(/\d[\d.,]*\s?€/);
+});
+
+Then('el tooltip del gráfico {string} muestra porcentajes', async function (this: PateSystemWorld, label: string) {
+  const homePage = new HomePage(this.page!);
+  const tooltip = await homePage.hoverChartPoint(label);
+  expect(tooltip).toMatch(/\d[\d.,]*%/);
+});
+
+Then('el tooltip del gráfico {string} se puede explorar con teclado', async function (this: PateSystemWorld, label: string) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectChartTooltipKeyboard(label);
 });
 
 Then('la privacidad indica importes ocultos', async function (this: PateSystemWorld) {
@@ -185,6 +229,21 @@ Then('el inicio móvil conserva su estructura', async function (this: PateSystem
   await expect(this.page!.locator('.desktop-home-workspace')).toHaveCount(0);
   await expect(this.page!.locator('.stats-row')).toBeVisible();
   await expect(this.page!.locator('.fab')).toBeVisible();
+});
+
+Then('el acceso de Resumen está disponible en la navegación móvil', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectMobileSummaryNavigationAvailable();
+});
+
+When('abro Resumen desde la navegación móvil', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.openSummaryFromMobileNavigation();
+});
+
+Then('la ruta de Resumen sigue disponible', async function (this: PateSystemWorld) {
+  const homePage = new HomePage(this.page!);
+  await homePage.expectSummaryRouteAvailable();
 });
 
 Given('que existe una transacción {string} de {float} del mes pasado por API en {string}', async function (

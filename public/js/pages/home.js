@@ -2,6 +2,9 @@ const HomePage = {
   currentMonth: null,
   activeAnalyticsTab: 'resumen',
   chartResizeObserver: null,
+  favorite: null,
+  desktopStatsRow: null,
+  desktopAnalyticsRoot: null,
 
   async render(params) {
     const content = $('#page-content');
@@ -213,13 +216,10 @@ const HomePage = {
 
   renderDesktopContent(content, summary, transactions, categories, options) {
     this.chartResizeObserver?.disconnect();
+    this.favorite = this.readDesktopFavorite();
     content.innerHTML = '';
     content.appendChild(create('h1', { className: 'visually-hidden', textContent: 'Inicio' }));
 
-    const favoriteKey = 'pate_home_favorite';
-    const validFavorites = ['ingresos', 'gastos', 'ahorro'];
-    let favorite = localStorage.getItem(favoriteKey);
-    if (!validFavorites.includes(favorite)) favorite = null;
     let hidden = localStorage.getItem('pate_hide_income') === 'true';
     const values = {
       ingresos: formatearEuro(summary.ingresos),
@@ -228,31 +228,25 @@ const HomePage = {
     };
 
     const statsRow = create('div', { className: 'stats-row desktop-home-stats', 'aria-label': 'Resumen del mes' });
-    const statCards = {};
+    this.desktopStatsRow = statsRow;
     const descriptors = [
       { id: 'ingresos', label: 'Ingresos', color: 'var(--income-color)' },
       { id: 'gastos', label: 'Gastos', color: 'var(--expense-color)' },
       { id: 'ahorro', label: 'Ahorro', color: summary.ahorro > 0 ? 'var(--success)' : summary.ahorro < 0 ? 'var(--danger)' : 'var(--text-primary)' }
     ];
 
-    const setFavorite = (selected) => {
-      favorite = favorite === selected ? null : selected;
-      if (favorite) localStorage.setItem(favoriteKey, favorite);
-      else localStorage.removeItem(favoriteKey);
-      this.renderDesktopStats(statsRow, descriptors, values, favorite, hidden, statCards, setFavorite);
-      statsRow.querySelector(`.desktop-stat-${selected} .desktop-favorite-toggle`)?.focus();
-    };
-    this.renderDesktopStats(statsRow, descriptors, values, favorite, hidden, statCards, setFavorite);
+    this.renderDesktopStats(statsRow, descriptors, values, hidden);
     content.appendChild(statsRow);
 
     const controls = create('div', { className: 'desktop-home-controls', 'aria-label': 'Controles de inicio' });
+    const controlActions = create('div', { className: 'desktop-control-actions' });
     const newTransaction = create('button', {
       className: 'btn btn-primary desktop-new-transaction',
       type: 'button',
       innerHTML: '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>Nueva transacción</span>'
     });
     on(newTransaction, 'click', () => TransactionForm.show(() => this.render({ month: this.currentMonth })));
-    controls.appendChild(newTransaction);
+    controlActions.appendChild(newTransaction);
 
     const eyeOpen = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
     const eyeClosed = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
@@ -272,9 +266,10 @@ const HomePage = {
       eyeButton.title = shouldHide ? 'Mostrar métricas principales' : 'Ocultar métricas principales';
       eyeButton.setAttribute('aria-label', shouldHide ? 'Métricas principales ocultas' : 'Métricas principales visibles');
       eyeButton.setAttribute('aria-pressed', String(shouldHide));
-      this.renderDesktopStats(statsRow, descriptors, values, favorite, shouldHide, statCards, setFavorite);
+      this.renderDesktopStats(statsRow, descriptors, values, shouldHide);
+      this.renderFavoriteSlot();
     });
-    controls.appendChild(eyeButton);
+    controlActions.appendChild(eyeButton);
 
     const filterButton = create('button', {
       className: `btn btn-sm btn-ghost btn-filter desktop-filter-btn${this.hasActiveFilters() ? ' active' : ''}`,
@@ -283,7 +278,7 @@ const HomePage = {
       'aria-pressed': String(this.hasActiveFilters())
     });
     on(filterButton, 'click', () => this.showFilterModal(categories, transactions));
-    controls.appendChild(filterButton);
+    controlActions.appendChild(filterButton);
 
     const monthSelector = createMonthSelector(this.currentMonth, (newMonth) => {
       this.currentMonth = newMonth;
@@ -293,6 +288,7 @@ const HomePage = {
     monthSelector.setAttribute('aria-label', 'Seleccionar mes');
     monthSelector.querySelectorAll('button')[0].setAttribute('aria-label', 'Mes anterior');
     monthSelector.querySelectorAll('button')[1].setAttribute('aria-label', 'Mes siguiente');
+    controls.appendChild(controlActions);
     controls.appendChild(monthSelector);
     content.appendChild(controls);
 
@@ -308,6 +304,7 @@ const HomePage = {
     analyticsPanel.appendChild(create('h2', { className: 'page-title desktop-analytics-title', textContent: 'Analítica' }));
     const tabList = create('div', { className: 'desktop-analytics-tabs', role: 'tablist', 'aria-label': 'Secciones de analítica' });
     const analyticsContent = create('div', { className: 'desktop-home-analytics-scroll' });
+    this.desktopAnalyticsRoot = analyticsContent;
     const tabDefinitions = [
       { id: 'resumen', label: 'Resumen' },
       { id: 'categorias', label: 'Categorías' },
@@ -358,6 +355,9 @@ const HomePage = {
       const group = node.dataset?.analyticsGroup || 'resumen';
       (tabPanels[group] || tabPanels.resumen).appendChild(node);
     });
+    this.refreshFavoriteSources(analyticsContent);
+    this.renderFavoriteSlot();
+    requestAnimationFrame(() => this.renderFavoriteSlot());
 
     const trendsPeriod = create('div', { className: 'desktop-trends-period', role: 'group', 'aria-label': 'Período de evolución' });
     const trendsContent = create('div', { className: 'desktop-trends-content' });
@@ -378,13 +378,16 @@ const HomePage = {
     workspace.appendChild(analyticsPanel);
     content.appendChild(workspace);
     this.chartResizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(() => Charts.redraw(tabPanels[this.activeAnalyticsTab]));
+      requestAnimationFrame(() => {
+        Charts.redraw(tabPanels[this.activeAnalyticsTab]);
+        Charts.redraw(statsRow);
+      });
     });
     this.chartResizeObserver.observe(analyticsPanel);
     requestAnimationFrame(() => Charts.redraw(tabPanels[this.activeAnalyticsTab]));
   },
 
-  renderDesktopStats(container, descriptors, values, favorite, hidden, statCards, setFavorite) {
+  renderDesktopStats(container, descriptors, values, hidden) {
     container.replaceChildren();
     const metricIcons = {
       ingresos: '<path d="M12 19V5M5 12l7-7 7 7"/>',
@@ -404,41 +407,101 @@ const HomePage = {
       }));
       heading.appendChild(create('div', { className: 'stat-label', textContent: label }));
       labelRow.appendChild(heading);
-      const favoriteButton = create('button', {
-        className: `desktop-favorite-toggle${favorite === id ? ' selected' : ''}`,
-        type: 'button',
-        textContent: favorite === id ? '★' : '☆',
-        title: favorite === id ? `Quitar ${label} de favoritos` : `Marcar ${label} como favorito`,
-        'aria-label': favorite === id ? `Quitar ${label} de favoritos` : `Marcar ${label} como favorito`,
-        'aria-pressed': String(favorite === id)
-      });
-      on(favoriteButton, 'click', () => setFavorite(id));
-      labelRow.appendChild(favoriteButton);
       card.appendChild(labelRow);
       const value = create('div', { className: `stat-value${hidden ? ' income-blurred' : ''}`, textContent: hidden ? '••••••' : values[id] });
       value.style.color = color;
       card.appendChild(value);
-      statCards[id] = card;
       container.appendChild(card);
     });
+  },
 
-    if (favorite) {
-      const descriptor = descriptors.find(item => item.id === favorite);
-      const favoriteCard = create('article', { className: 'stat-card desktop-stat-card desktop-favorite-card', 'aria-label': `Favorito: ${descriptor.label}` });
-      const favoriteHeading = create('div', { className: 'desktop-favorite-heading' });
-      favoriteHeading.appendChild(create('span', {
-        className: 'desktop-stat-icon',
-        dataset: { metricIcon: favorite },
-        'aria-hidden': 'true',
-        style: { color: descriptor.color },
-        innerHTML: `<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${metricIcons[favorite]}</svg>`
-      }));
-      favoriteHeading.appendChild(create('div', { className: 'stat-label', textContent: `Favorito · ${descriptor.label}` }));
-      favoriteCard.appendChild(favoriteHeading);
-      const value = create('div', { className: `stat-value${hidden ? ' income-blurred' : ''}`, textContent: hidden ? '••••••' : values[favorite] });
-      value.style.color = descriptor.color;
-      favoriteCard.appendChild(value);
-      container.appendChild(favoriteCard);
+  readDesktopFavorite() {
+    const storageKey = 'pate_home_favorite';
+    const saved = localStorage.getItem(storageKey);
+    if (!saved) return null;
+    try {
+      const favorite = JSON.parse(saved);
+      if (favorite?.type && favorite?.key) return favorite;
+    } catch {
+      // Legacy metric-only favorites are intentionally discarded.
+    }
+    localStorage.removeItem(storageKey);
+    return null;
+  },
+
+  refreshFavoriteSources(root) {
+    if (!root) return;
+    root.querySelectorAll('[data-favorite-type][data-favorite-key]').forEach(source => {
+      source.classList.add('desktop-favorite-source');
+      const label = source.dataset.favoriteLabel || source.querySelector('.chart-title, .goal-progress-label, summary, h3')?.textContent?.trim() || 'Analítica';
+      source.dataset.favoriteLabel = label;
+      let button = source.querySelector(':scope > .analytics-favorite-toggle');
+      if (!button) {
+        button = create('button', { className: 'analytics-favorite-toggle', type: 'button' });
+        on(button, 'click', () => this.toggleDesktopFavorite(source, button));
+        source.appendChild(button);
+      }
+      this.updateFavoriteToggle(source, button);
+    });
+  },
+
+  updateFavoriteToggle(source, button) {
+    const selected = this.favorite?.type === source.dataset.favoriteType
+      && this.favorite?.key === source.dataset.favoriteKey;
+    const label = source.dataset.favoriteLabel || 'Analítica';
+    button.classList.toggle('selected', selected);
+    button.textContent = selected ? '★' : '☆';
+    button.setAttribute('aria-label', selected ? `Quitar ${label} de favoritos` : `Marcar ${label} como favorito`);
+    button.setAttribute('title', selected ? `Quitar ${label} de favoritos` : `Marcar ${label} como favorito`);
+    button.setAttribute('aria-pressed', String(selected));
+  },
+
+  toggleDesktopFavorite(source, button) {
+    const selected = this.favorite?.type === source.dataset.favoriteType
+      && this.favorite?.key === source.dataset.favoriteKey;
+    this.favorite = selected ? null : {
+      type: source.dataset.favoriteType,
+      key: source.dataset.favoriteKey,
+      label: source.dataset.favoriteLabel
+    };
+    if (this.favorite) localStorage.setItem('pate_home_favorite', JSON.stringify(this.favorite));
+    else localStorage.removeItem('pate_home_favorite');
+    this.refreshFavoriteSources(this.desktopAnalyticsRoot);
+    this.renderFavoriteSlot();
+    button.focus();
+  },
+
+  renderFavoriteSlot() {
+    if (!this.desktopStatsRow) return;
+    this.desktopStatsRow.querySelector('.desktop-favorite-card')?.remove();
+    if (!this.favorite) return;
+
+    const source = Array.from(this.desktopAnalyticsRoot?.querySelectorAll('[data-favorite-type][data-favorite-key]') || [])
+      .find(node => node.dataset.favoriteType === this.favorite.type && node.dataset.favoriteKey === this.favorite.key);
+    const favoriteCard = source ? source.cloneNode(true) : create('article', { className: 'desktop-favorite-card desktop-favorite-replica' });
+    favoriteCard.classList.add('desktop-favorite-card', 'desktop-favorite-replica');
+    favoriteCard.classList.remove('desktop-favorite-source');
+    favoriteCard.setAttribute('aria-label', `Favorito: ${this.favorite.label || 'Analítica'}`);
+    favoriteCard.querySelectorAll('.analytics-favorite-toggle, .chart-tooltip').forEach(node => node.remove());
+    favoriteCard.prepend(create('div', {
+      className: 'desktop-favorite-replica-heading',
+      textContent: `Favorito · ${this.favorite.label || 'Analítica'}`
+    }));
+    this.desktopStatsRow.appendChild(favoriteCard);
+
+    if (source) {
+      const sourceCanvases = source.querySelectorAll('canvas');
+      const replicaCanvases = favoriteCard.querySelectorAll('canvas');
+      sourceCanvases.forEach((canvas, index) => Charts.copyCanvas(canvas, replicaCanvases[index]));
+      if (sourceCanvases.length && Array.from(sourceCanvases).some(canvas => !canvas.__chartRender)) {
+        requestAnimationFrame(() => {
+          if (this.favorite?.type === source.dataset.favoriteType && this.favorite?.key === source.dataset.favoriteKey) {
+            this.renderFavoriteSlot();
+          }
+        });
+      }
+    } else {
+      favoriteCard.appendChild(create('p', { className: 'desktop-favorite-unavailable', textContent: 'Este análisis no tiene datos en el período actual.' }));
     }
   },
 
@@ -554,7 +617,13 @@ const HomePage = {
     const cacheKey = `${this.currentMonth}:${period}`;
     if (this._desktopTrendsCache?.key === cacheKey) {
       EstadisticasPage.renderTrendsInto(target, this._desktopTrendsCache.data);
-      requestAnimationFrame(() => Charts.redraw(target));
+      this.refreshFavoriteSources(target);
+      this.renderFavoriteSlot();
+      requestAnimationFrame(() => {
+        this.renderFavoriteSlot();
+        Charts.redraw(target);
+        Charts.redraw(this.desktopStatsRow);
+      });
       return;
     }
 
@@ -564,7 +633,13 @@ const HomePage = {
       if (this.activeAnalyticsTab !== 'evolucion' || this.currentMonth !== cacheKey.split(':')[0] || EstadisticasPage.period !== period) return;
       this._desktopTrendsCache = { key: cacheKey, data: trends };
       EstadisticasPage.renderTrendsInto(target, trends);
-      requestAnimationFrame(() => Charts.redraw(target));
+      this.refreshFavoriteSources(target);
+      this.renderFavoriteSlot();
+      requestAnimationFrame(() => {
+        this.renderFavoriteSlot();
+        Charts.redraw(target);
+        Charts.redraw(this.desktopStatsRow);
+      });
     } catch (error) {
       target.replaceChildren(create('div', { className: 'empty-state', textContent: `No se pudo cargar la evolución: ${error.message}` }));
     }
