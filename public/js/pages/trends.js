@@ -156,49 +156,7 @@ const EstadisticasPage = {
     this._dataSection.innerHTML = '';
 
     if (summary.porCategoria.length > 0 || summary.ingresos > 0) {
-      const monthCard = create('div', { className: 'chart-container' });
-      monthCard.appendChild(create('div', { className: 'chart-title', textContent: 'Resumen del mes' }));
-
-      const monthChartWrapper = create('div');
-      const monthCanvas = create('canvas');
-      monthChartWrapper.appendChild(monthCanvas);
-      monthCard.appendChild(monthChartWrapper);
-
-      const legend = create('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '12px', justifyContent: 'center' } });
-      if (summary.ingresos > 0) {
-        legend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:var(--income-color)"></span>Ingresos: ${formatearEuro(summary.ingresos)}` }));
-      }
-      if (summary.gastosNetos > 0) {
-        legend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:var(--expense-color)"></span>Gastos: ${formatearEuro(summary.gastosNetos)}` }));
-      }
-      if (summary.reembolsos > 0) {
-        legend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:var(--refund-color)"></span>Reembolsos: ${formatearEuro(summary.reembolsos)}` }));
-      }
-      const savingsColor = summary.ahorro >= 0 ? 'var(--success)' : 'var(--danger)';
-      legend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:${savingsColor}"></span>Ahorro: ${formatearEuro(summary.ahorro)}` }));
-      monthCard.appendChild(legend);
-      this._dataSection.appendChild(monthCard);
-
-      const barLabels = ['Gastos', 'Ingresos', 'Reembolsos'];
-      const barData = [summary.gastosNetos, summary.ingresos, summary.reembolsos];
-      const barColors = ['#FF6B6B', '#4ECDC4', '#FFE66D'];
-
-      requestAnimationFrame(() => {
-        Charts.drawBarChart(monthCanvas, barData.map((v, i) => ({
-          value: Math.abs(v),
-          color: barColors[i],
-          label: barLabels[i]
-        })), { height: 180 });
-      });
-
-      const ahorroColor = summary.ahorro >= 0 ? 'var(--success)' : 'var(--danger)';
-      const ahorroSign = summary.ahorro >= 0 ? '+' : '';
-      const ahorroStat = create('div', {
-        className: 'category-badge',
-        style: { justifyContent: 'center', marginTop: '12px', fontSize: 'var(--font-md)', fontWeight: '700', color: ahorroColor }
-      });
-      ahorroStat.innerHTML = `Ahorro: ${ahorroSign}${formatearEuro(summary.ahorro)}`;
-      monthCard.appendChild(ahorroStat);
+      this.renderMonthOverviewInto(this._dataSection, summary);
 
       if (summary.porCategoria.length > 0) {
         const chartCats = summary.porCategoria.filter(c => !c.parentId && c.neto > 0);
@@ -245,16 +203,65 @@ const EstadisticasPage = {
       });
     });
 
-    this._trendsSection.innerHTML = '';
+    this.renderTrendsInto(this._trendsSection, trends);
+  },
+
+  renderMonthOverviewInto(target, summary) {
+    const monthCard = create('div', { className: 'chart-container' });
+    monthCard.appendChild(create('div', { className: 'chart-title', textContent: 'Resumen del mes' }));
+
+    const monthChartWrapper = create('div');
+    const monthCanvas = create('canvas', { role: 'img', 'aria-label': 'Gráfico de gastos, ingresos y reembolsos del mes' });
+    monthChartWrapper.appendChild(monthCanvas);
+    monthCard.appendChild(monthChartWrapper);
+
+    const legend = create('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '12px', justifyContent: 'center' } });
+    if (summary.ingresos > 0) {
+      legend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:var(--income-color)"></span>Ingresos: ${formatearEuro(summary.ingresos)}` }));
+    }
+    if (summary.gastosNetos > 0) {
+      legend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:var(--expense-color)"></span>Gastos: ${formatearEuro(summary.gastosNetos)}` }));
+    }
+    if (summary.reembolsos > 0) {
+      legend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:var(--refund-color)"></span>Reembolsos: ${formatearEuro(summary.reembolsos)}` }));
+    }
+    const savingsColor = summary.ahorro >= 0 ? 'var(--success)' : 'var(--danger)';
+    legend.appendChild(create('div', { className: 'category-badge', innerHTML: `<span class="category-dot" style="background:${savingsColor}"></span>Ahorro: ${formatearEuro(summary.ahorro)}` }));
+    monthCard.appendChild(legend);
+
+    const barLabels = ['Gastos', 'Ingresos', 'Reembolsos'];
+    const barData = [summary.gastosNetos, summary.ingresos, summary.reembolsos];
+    const barColors = ['#FF6B6B', '#4ECDC4', '#FFE66D'];
+    requestAnimationFrame(() => {
+      Charts.drawBarChart(monthCanvas, barData.map((value, index) => ({
+        value: Math.abs(value),
+        color: barColors[index],
+        label: barLabels[index]
+      })), { height: 180 });
+    });
+
+    const savingsSign = summary.ahorro >= 0 ? '+' : '';
+    const savingsStat = create('div', {
+      className: 'category-badge',
+      style: { justifyContent: 'center', marginTop: '12px', fontSize: 'var(--font-md)', fontWeight: '700', color: savingsColor }
+    });
+    savingsStat.innerHTML = `Ahorro: ${savingsSign}${formatearEuro(summary.ahorro)}`;
+    monthCard.appendChild(savingsStat);
+    target.appendChild(monthCard);
+    return monthCard;
+  },
+
+  renderTrendsInto(target, trends) {
+    target.replaceChildren();
 
     if (trends.monthlyData.length > 0) {
       const ahorroCard = create('div', { className: 'chart-container' });
       ahorroCard.appendChild(create('div', { className: 'chart-title', textContent: 'Evolución del ahorro' }));
       const ahorroWrapper = create('div');
-      const ahorroCanvas = create('canvas');
+      const ahorroCanvas = create('canvas', { role: 'img', 'aria-label': 'Evolución mensual del ahorro' });
       ahorroWrapper.appendChild(ahorroCanvas);
       ahorroCard.appendChild(ahorroWrapper);
-      this._trendsSection.appendChild(ahorroCard);
+      target.appendChild(ahorroCard);
 
       const labels = trends.monthlyData.map(d => {
         const [y, m] = d.month.split('-');
@@ -276,7 +283,7 @@ const EstadisticasPage = {
         const catCard = create('div', { className: 'chart-container' });
         catCard.appendChild(create('div', { className: 'chart-title', textContent: 'Evolución por categoría' }));
         const catWrapper = create('div');
-        const catCanvas = create('canvas');
+        const catCanvas = create('canvas', { role: 'img', 'aria-label': 'Evolución mensual de gastos por categoría' });
         catWrapper.appendChild(catCanvas);
         catCard.appendChild(catWrapper);
 
@@ -297,7 +304,7 @@ const EstadisticasPage = {
         });
 
         catCard.appendChild(catLegend);
-        this._trendsSection.appendChild(catCard);
+        target.appendChild(catCard);
 
         requestAnimationFrame(() => {
           Charts.drawLineChart(catCanvas, datasets, labels, { height: 220 });
@@ -306,7 +313,7 @@ const EstadisticasPage = {
 
       const incomeCard = create('div', { className: 'chart-container' });
       incomeCard.appendChild(create('div', { className: 'chart-title', textContent: 'Evolución porcentual A vs B' }));
-      const incomeCanvas = create('canvas');
+      const incomeCanvas = create('canvas', { role: 'img', 'aria-label': 'Evolución porcentual mensual de ingresos A y B' });
       const incomeWrapper = create('div');
       incomeWrapper.appendChild(incomeCanvas);
       incomeCard.appendChild(incomeWrapper);
@@ -314,7 +321,7 @@ const EstadisticasPage = {
       incomeLegend.appendChild(create('div', { className: 'category-badge', innerHTML: '<span class="category-dot" style="background:#4ECDC4"></span>A' }));
       incomeLegend.appendChild(create('div', { className: 'category-badge', innerHTML: '<span class="category-dot" style="background:#FF6B6B"></span>B' }));
       incomeCard.appendChild(incomeLegend);
-      this._trendsSection.appendChild(incomeCard);
+      target.appendChild(incomeCard);
       requestAnimationFrame(() => Charts.drawLineChart(incomeCanvas, [
         { data: trends.monthlyData.map(d => d.porcentajeA), color: '#4ECDC4' },
         { data: trends.monthlyData.map(d => d.porcentajeB), color: '#FF6B6B' }
@@ -323,20 +330,20 @@ const EstadisticasPage = {
       const ivaCard = create('div', { className: 'chart-container' });
       ivaCard.appendChild(create('div', { className: 'chart-title', textContent: 'IVA acumulado por mes' }));
       const ivaWrapper = create('div');
-      const ivaCanvas = create('canvas');
+      const ivaCanvas = create('canvas', { role: 'img', 'aria-label': 'IVA acumulado en cada mes del período' });
       ivaWrapper.appendChild(ivaCanvas);
       ivaCard.appendChild(ivaWrapper);
       const ivaLegend = create('div', { className: 'fv-legend' });
       ivaLegend.appendChild(create('div', { className: 'category-badge', innerHTML: '<span class="category-dot" style="background:#FFE66D"></span>IVA acumulado' }));
       ivaCard.appendChild(ivaLegend);
-      this._trendsSection.appendChild(ivaCard);
+      target.appendChild(ivaCard);
       requestAnimationFrame(() => Charts.drawBarChart(ivaCanvas, trends.monthlyData.map((d, i) => ({
         value: d.ivaAcumulado || 0,
         color: '#FFE66D',
         label: labels[i]
       })), { height: 180 }));
     } else {
-      this._trendsSection.appendChild(create('div', {
+      target.appendChild(create('div', {
         className: 'empty-state',
         innerHTML: '<div class="empty-state-icon">📈</div><p class="empty-state-text">No hay datos en este período</p>'
       }));
@@ -344,7 +351,7 @@ const EstadisticasPage = {
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        this._trendsSection.classList.add('visible');
+        target.classList.add('visible');
       });
     });
   }

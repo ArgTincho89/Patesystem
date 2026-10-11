@@ -28,6 +28,11 @@ const Router = {
       return;
     }
 
+    if (path !== '/home' && HomePage.chartResizeObserver) {
+      HomePage.chartResizeObserver.disconnect();
+      HomePage.chartResizeObserver = null;
+    }
+
     if (!App.user) document.body.classList.remove('desktop-mode');
     document.body.classList.toggle('desktop-home', path === '/home' && App.isDesktop());
 

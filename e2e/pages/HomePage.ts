@@ -19,6 +19,11 @@ export class HomePage extends BasePage {
     eyeToggle: '.eye-toggle-btn',
     monthNav: '.month-nav',
     monthLabel: '.month-nav h2',
+    desktopNewTransaction: '.desktop-new-transaction',
+    controls: '.desktop-home-controls',
+    analyticsTabs: '[role="tablist"]',
+    favoriteToggle: '.desktop-favorite-toggle',
+    favoriteCard: '.desktop-favorite-card',
   };
 
   constructor(page: Page) {
@@ -40,15 +45,16 @@ export class HomePage extends BasePage {
   }
 
   async openNewTransaction(): Promise<TransactionForm> {
-    const fab = this.page.locator(this.selectors.fab);
-    await fab.waitFor({ state: 'visible' });
+    const desktopButton = this.page.locator(this.selectors.desktopNewTransaction);
+    const trigger = await desktopButton.count() ? desktopButton : this.page.locator(this.selectors.fab);
+    await trigger.waitFor({ state: 'visible' });
     for (let attempt = 0; attempt < 3; attempt++) {
-      await fab.click();
+      await trigger.click();
       try {
         await expect(this.page.locator(this.selectors.modalTitle)).toContainText('Nueva transacción', { timeout: 2000 });
         return new TransactionForm(this.page);
       } catch {
-        if (attempt === 2) throw new Error('El modal de nueva transacción no se abrió tras hacer clic en el FAB');
+        if (attempt === 2) throw new Error('El modal de nueva transacción no se abrió');
         await this.page.waitForTimeout(300);
       }
     }
@@ -84,7 +90,11 @@ export class HomePage extends BasePage {
   }
 
   private statCard(label: string): Locator {
-    return this.page.locator('.stat-card').filter({ hasText: label });
+    const statIds: Record<string, string> = { Ingresos: 'ingresos', Gastos: 'gastos', Ahorro: 'ahorro' };
+    const id = statIds[label];
+    return id
+      ? this.page.locator(`.desktop-stat-${id}, .stats-row .stat-card`).filter({ hasText: label }).first()
+      : this.page.locator('.stat-card').filter({ hasText: label }).first();
   }
 
   async getStatValue(label: string): Promise<string> {
@@ -106,20 +116,105 @@ export class HomePage extends BasePage {
   async expectValuesBlurred(): Promise<void> {
     await expect(this.statCard('Ingresos').locator('.stat-value')).toHaveClass(/income-blurred/);
     await expect(this.statCard('Ahorro').locator('.stat-value')).toHaveClass(/income-blurred/);
+    if (await this.page.locator('body.desktop-mode').count()) {
+      await expect(this.statCard('Gastos').locator('.stat-value')).toHaveClass(/income-blurred/);
+    }
+    if (await this.page.locator(this.selectors.favoriteCard).count()) {
+      await expect(this.page.locator(this.selectors.favoriteCard).locator('.stat-value')).toHaveClass(/income-blurred/);
+    }
   }
 
   async expectValuesNotBlurred(): Promise<void> {
     await expect(this.statCard('Ingresos').locator('.stat-value')).not.toHaveClass(/income-blurred/);
     await expect(this.statCard('Ahorro').locator('.stat-value')).not.toHaveClass(/income-blurred/);
+    if (await this.page.locator('body.desktop-mode').count()) {
+      await expect(this.statCard('Gastos').locator('.stat-value')).not.toHaveClass(/income-blurred/);
+    }
+    if (await this.page.locator(this.selectors.favoriteCard).count()) {
+      await expect(this.page.locator(this.selectors.favoriteCard).locator('.stat-value')).not.toHaveClass(/income-blurred/);
+    }
+  }
+
+  async selectFavorite(label: 'Ingresos' | 'Gastos' | 'Ahorro'): Promise<void> {
+    const id = { Ingresos: 'ingresos', Gastos: 'gastos', Ahorro: 'ahorro' }[label];
+    await this.page.locator(`.desktop-stat-${id} .desktop-favorite-toggle`).click();
+  }
+
+  async expectFavorite(label: 'Ingresos' | 'Gastos' | 'Ahorro'): Promise<void> {
+    await expect(this.page.locator(this.selectors.favoriteCard)).toContainText(`Favorito · ${label}`);
+  }
+
+  async expectFavoriteMatches(label: 'Ingresos' | 'Gastos' | 'Ahorro'): Promise<void> {
+    await expect(this.page.locator(this.selectors.favoriteCard).locator('.stat-value'))
+      .toHaveText(await this.getStatValue(label));
+  }
+
+  async openAnalyticsTab(label: string): Promise<void> {
+    await this.page.getByRole('tab', { name: label }).click();
+    await expect(this.page.getByRole('tab', { name: label })).toHaveAttribute('aria-selected', 'true');
+  }
+
+  async expectDesktopControlOrder(): Promise<void> {
+    const order = await this.page.locator(this.selectors.controls).locator(':scope > *').evaluateAll(nodes =>
+      nodes.map(node => node.classList.contains('desktop-new-transaction')
+        ? 'Nueva transacción'
+        : node.classList.contains('desktop-eye-toggle')
+          ? 'Privacidad'
+          : node.classList.contains('desktop-filter-btn')
+            ? 'Filtro'
+            : node.classList.contains('desktop-month-selector') ? 'Mes' : 'Otro')
+    );
+    expect(order).toEqual(['Nueva transacción', 'Privacidad', 'Filtro', 'Mes']);
+  }
+
+  async expectThreePrimaryCards(): Promise<void> {
+    await expect(this.page.locator('.desktop-home-stats > .desktop-stat-card:not(.desktop-favorite-card)')).toHaveCount(3);
+  }
+
+  async expectDesktopMetricIconsAndTransactionLabel(): Promise<void> {
+    for (const id of ['ingresos', 'gastos', 'ahorro']) {
+      const icon = this.page.locator(`.desktop-stat-${id} .desktop-stat-icon svg`);
+      await expect(icon).toHaveCount(1);
+      await expect(icon).toHaveAttribute('aria-hidden', 'true');
+    }
+
+    const button = this.page.getByRole('button', { name: 'Nueva transacción', exact: true });
+    await expect(button).toBeVisible();
+    await expect(button).toHaveText('Nueva transacción');
+  }
+
+  async expectFavoriteIcon(label: 'Ingresos' | 'Gastos' | 'Ahorro'): Promise<void> {
+    const id = { Ingresos: 'ingresos', Gastos: 'gastos', Ahorro: 'ahorro' }[label];
+    const icon = this.page.locator(`${this.selectors.favoriteCard} .desktop-stat-icon`);
+    await expect(icon).toHaveAttribute('data-metric-icon', id);
+    await expect(icon.locator('svg')).toHaveAttribute('aria-hidden', 'true');
+  }
+
+  async expectPrivacyState(hidden: boolean): Promise<void> {
+    const eye = this.page.locator(this.selectors.eyeToggle);
+    await expect(eye).toHaveAttribute('aria-pressed', String(hidden));
+    await expect(eye).toHaveAttribute('aria-label', hidden ? 'Métricas principales ocultas' : 'Métricas principales visibles');
+  }
+
+  async expectDesktopLayoutWithinViewport(): Promise<void> {
+    const withinViewport = await this.page.locator('#page-content').evaluate(element => {
+      const bounds = element.getBoundingClientRect();
+      const cards = Array.from(element.querySelectorAll('.desktop-stat-card'), card => card.getBoundingClientRect());
+      const controls = element.querySelector('.desktop-home-controls')!.getBoundingClientRect();
+      return bounds.right <= window.innerWidth + 1
+        && cards.every(card => card.width > 0 && card.right <= window.innerWidth + 1)
+        && controls.right <= window.innerWidth + 1;
+    });
+    expect(withinViewport).toBe(true);
   }
 
   async navigateMonth(direction: 'prev' | 'next'): Promise<void> {
     const nav = this.page.locator(this.selectors.monthNav);
     await nav.waitFor({ state: 'visible' });
+    const previousMonth = await nav.locator('h2').innerText();
     const button = nav.locator('button').nth(direction === 'prev' ? 0 : 1);
     await button.click({ force: true });
-    // Wait for the page data to refresh after month change.
-    await this.page.waitForLoadState('networkidle');
+    await expect(this.page.locator(this.selectors.monthLabel)).not.toHaveText(previousMonth);
   }
 
   async getMonthLabel(): Promise<string> {

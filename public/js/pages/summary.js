@@ -33,24 +33,28 @@ const SummaryPage = {
       content.appendChild(monthNav);
     }
 
-    const statsRow = create('div', { className: 'stats-row' });
-    const savingsColor = summary.ahorro >= 0 ? 'var(--success)' : 'var(--danger)';
-    const savingsSign = summary.ahorro >= 0 ? '+' : '';
+    if (!options.suppressStats) {
+      const statsRow = create('div', { className: 'stats-row' });
+      const savingsColor = summary.ahorro >= 0 ? 'var(--success)' : 'var(--danger)';
+      const savingsSign = summary.ahorro >= 0 ? '+' : '';
 
-    statsRow.appendChild(this.createStat('Ingresos', formatearEuro(summary.ingresos), 'var(--income-color)'));
-    statsRow.appendChild(this.createStat('Gastos', formatearEuro(summary.gastosNetos), 'var(--expense-color)'));
-    statsRow.appendChild(this.createStat('Ahorro', `${savingsSign}${formatearEuro(summary.ahorro)}`, savingsColor));
-    content.appendChild(statsRow);
+      statsRow.appendChild(this.createStat('Ingresos', formatearEuro(summary.ingresos), 'var(--income-color)'));
+      statsRow.appendChild(this.createStat('Gastos', formatearEuro(summary.gastosNetos), 'var(--expense-color)'));
+      statsRow.appendChild(this.createStat('Ahorro', `${savingsSign}${formatearEuro(summary.ahorro)}`, savingsColor));
+      content.appendChild(statsRow);
+    }
 
     if (goals && goals.length > 0) {
       goals.forEach(goal => {
         const goalCard = this.renderGoalProgress(goal, summary);
+        goalCard.dataset.analyticsGroup = 'metas';
         content.appendChild(goalCard);
       });
     }
 
     if (burnRate && burnRate.currentMonth && burnRate.currentMonth.length > 0) {
       const burnCard = this.renderBurnRate(burnRate);
+      burnCard.dataset.analyticsGroup = 'resumen';
       content.appendChild(burnCard);
     }
 
@@ -58,10 +62,11 @@ const SummaryPage = {
 
     if (chartCats.length > 0) {
       const chartCard = create('div', { className: 'chart-container' });
+      chartCard.dataset.analyticsGroup = 'categorias';
       chartCard.appendChild(create('div', { className: 'chart-title', textContent: 'Distribución de gastos' }));
 
       const chartWrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
-      const canvas = create('canvas', { className: 'chart-canvas' });
+      const canvas = create('canvas', { className: 'chart-canvas', role: 'img', 'aria-label': 'Gráfico de distribución de gastos por categoría' });
       chartWrapper.appendChild(canvas);
       chartCard.appendChild(chartWrapper);
 
@@ -89,6 +94,7 @@ const SummaryPage = {
     }
 
     const catSection = create('div', { className: 'summary-section' });
+    catSection.dataset.analyticsGroup = 'categorias';
     let breakdownContent = catSection;
     if (options.categoryDisclosure) {
       const details = create('details', { className: 'desktop-category-disclosure', open: true });
@@ -141,10 +147,11 @@ const SummaryPage = {
 
     if (summary.fijos > 0 || summary.variables > 0) {
       const fvCard = create('div', { className: 'chart-container' });
+      fvCard.dataset.analyticsGroup = 'categorias';
       fvCard.appendChild(create('div', { className: 'chart-title', textContent: 'Fijo vs Variable' }));
 
       const fvWrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
-      const fvCanvas = create('canvas', { className: 'chart-canvas' });
+      const fvCanvas = create('canvas', { className: 'chart-canvas', role: 'img', 'aria-label': 'Gráfico de gastos fijos y variables' });
       fvWrapper.appendChild(fvCanvas);
       fvCard.appendChild(fvWrapper);
 
@@ -178,9 +185,10 @@ const SummaryPage = {
 
     if (summary.ingresos > 0) {
       const incomeCard = create('div', { className: 'chart-container' });
+      incomeCard.dataset.analyticsGroup = 'categorias';
       incomeCard.appendChild(create('div', { className: 'chart-title', textContent: 'Ingresos A vs B' }));
       const wrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
-      const canvas = create('canvas', { className: 'chart-canvas' });
+      const canvas = create('canvas', { className: 'chart-canvas', role: 'img', 'aria-label': 'Gráfico de ingresos A y B' });
       wrapper.appendChild(canvas);
       incomeCard.appendChild(wrapper);
       const legend = create('div', { className: 'fv-legend' });
@@ -195,7 +203,9 @@ const SummaryPage = {
       ], 200));
     }
 
-    content.appendChild(this.createIvaBadge(summary));
+    const ivaBadge = this.createIvaBadge(summary);
+    ivaBadge.dataset.analyticsGroup = 'categorias';
+    content.appendChild(ivaBadge);
   },
 
   renderGoalProgress(goal, summary) {
@@ -419,7 +429,7 @@ const SummaryPage = {
     card.appendChild(legend);
 
     const wrapper = create('div', { style: { display: 'flex', justifyContent: 'center' } });
-    const canvas = create('canvas', { className: 'chart-canvas' });
+    const canvas = create('canvas', { className: 'chart-canvas', role: 'img', 'aria-label': 'Gráfico del ritmo de gasto del mes y su promedio' });
     wrapper.appendChild(canvas);
     card.appendChild(wrapper);
 
@@ -431,10 +441,12 @@ const SummaryPage = {
   },
 
   drawBurnRateChart(canvas, burnRate) {
+    canvas.__chartDraw = () => this.drawBurnRateChart(canvas, burnRate);
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.parentElement.clientWidth - 48;
     const h = 200;
+    if (w <= 0) return;
 
     canvas.width = w * dpr;
     canvas.height = h * dpr;

@@ -1,5 +1,7 @@
 const HomePage = {
   currentMonth: null,
+  activeAnalyticsTab: 'resumen',
+  chartResizeObserver: null,
 
   async render(params) {
     const content = $('#page-content');
@@ -40,6 +42,11 @@ const HomePage = {
   },
 
   renderContent(content, summary, transactions, categories, options = {}) {
+    if (options.desktop) {
+      this.renderDesktopContent(content, summary, transactions, categories, options);
+      return;
+    }
+
     const catMap = {};
     categories.forEach(c => catMap[c.id] = c);
 
@@ -202,6 +209,365 @@ const HomePage = {
       () => this.render({ month: this.currentMonth })
     ));
     content.appendChild(fab);
+  },
+
+  renderDesktopContent(content, summary, transactions, categories, options) {
+    this.chartResizeObserver?.disconnect();
+    content.innerHTML = '';
+    content.appendChild(create('h1', { className: 'visually-hidden', textContent: 'Inicio' }));
+
+    const favoriteKey = 'pate_home_favorite';
+    const validFavorites = ['ingresos', 'gastos', 'ahorro'];
+    let favorite = localStorage.getItem(favoriteKey);
+    if (!validFavorites.includes(favorite)) favorite = null;
+    let hidden = localStorage.getItem('pate_hide_income') === 'true';
+    const values = {
+      ingresos: formatearEuro(summary.ingresos),
+      gastos: formatearEuro(summary.gastosNetos),
+      ahorro: `${summary.ahorro > 0 ? '+' : ''}${formatearEuro(summary.ahorro)}`
+    };
+
+    const statsRow = create('div', { className: 'stats-row desktop-home-stats', 'aria-label': 'Resumen del mes' });
+    const statCards = {};
+    const descriptors = [
+      { id: 'ingresos', label: 'Ingresos', color: 'var(--income-color)' },
+      { id: 'gastos', label: 'Gastos', color: 'var(--expense-color)' },
+      { id: 'ahorro', label: 'Ahorro', color: summary.ahorro > 0 ? 'var(--success)' : summary.ahorro < 0 ? 'var(--danger)' : 'var(--text-primary)' }
+    ];
+
+    const setFavorite = (selected) => {
+      favorite = favorite === selected ? null : selected;
+      if (favorite) localStorage.setItem(favoriteKey, favorite);
+      else localStorage.removeItem(favoriteKey);
+      this.renderDesktopStats(statsRow, descriptors, values, favorite, hidden, statCards, setFavorite);
+      statsRow.querySelector(`.desktop-stat-${selected} .desktop-favorite-toggle`)?.focus();
+    };
+    this.renderDesktopStats(statsRow, descriptors, values, favorite, hidden, statCards, setFavorite);
+    content.appendChild(statsRow);
+
+    const controls = create('div', { className: 'desktop-home-controls', 'aria-label': 'Controles de inicio' });
+    const newTransaction = create('button', {
+      className: 'btn btn-primary desktop-new-transaction',
+      type: 'button',
+      innerHTML: '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span>Nueva transacción</span>'
+    });
+    on(newTransaction, 'click', () => TransactionForm.show(() => this.render({ month: this.currentMonth })));
+    controls.appendChild(newTransaction);
+
+    const eyeOpen = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const eyeClosed = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+    const eyeButton = create('button', {
+      className: 'eye-toggle-btn desktop-eye-toggle',
+      type: 'button',
+      innerHTML: hidden ? eyeClosed : eyeOpen,
+      title: hidden ? 'Mostrar métricas principales' : 'Ocultar métricas principales',
+      'aria-label': hidden ? 'Métricas principales ocultas' : 'Métricas principales visibles',
+      'aria-pressed': String(hidden)
+    });
+    on(eyeButton, 'click', () => {
+      const shouldHide = localStorage.getItem('pate_hide_income') !== 'true';
+      localStorage.setItem('pate_hide_income', String(shouldHide));
+      hidden = shouldHide;
+      eyeButton.innerHTML = shouldHide ? eyeClosed : eyeOpen;
+      eyeButton.title = shouldHide ? 'Mostrar métricas principales' : 'Ocultar métricas principales';
+      eyeButton.setAttribute('aria-label', shouldHide ? 'Métricas principales ocultas' : 'Métricas principales visibles');
+      eyeButton.setAttribute('aria-pressed', String(shouldHide));
+      this.renderDesktopStats(statsRow, descriptors, values, favorite, shouldHide, statCards, setFavorite);
+    });
+    controls.appendChild(eyeButton);
+
+    const filterButton = create('button', {
+      className: `btn btn-sm btn-ghost btn-filter desktop-filter-btn${this.hasActiveFilters() ? ' active' : ''}`,
+      type: 'button',
+      textContent: 'Filtro',
+      'aria-pressed': String(this.hasActiveFilters())
+    });
+    on(filterButton, 'click', () => this.showFilterModal(categories, transactions));
+    controls.appendChild(filterButton);
+
+    const monthSelector = createMonthSelector(this.currentMonth, (newMonth) => {
+      this.currentMonth = newMonth;
+      Router.navigate(`/home?month=${newMonth}`);
+    }, { allowFuture: true });
+    monthSelector.classList.add('desktop-month-selector');
+    monthSelector.setAttribute('aria-label', 'Seleccionar mes');
+    monthSelector.querySelectorAll('button')[0].setAttribute('aria-label', 'Mes anterior');
+    monthSelector.querySelectorAll('button')[1].setAttribute('aria-label', 'Mes siguiente');
+    controls.appendChild(monthSelector);
+    content.appendChild(controls);
+
+    const workspace = create('div', { className: 'desktop-home-workspace' });
+    const transactionsPanel = create('section', { className: 'desktop-home-transactions', 'aria-label': 'Transacciones' });
+    const transactionHeading = create('h2', { className: 'page-title desktop-home-title', textContent: 'Transacciones' });
+    transactionsPanel.appendChild(transactionHeading);
+    const transactionList = create('div', { className: 'desktop-home-transaction-scroll' });
+    this.renderDesktopTransactions(transactionList, transactions, categories);
+    transactionsPanel.appendChild(transactionList);
+
+    const analyticsPanel = create('section', { className: 'desktop-home-analytics', 'aria-label': 'Analítica' });
+    analyticsPanel.appendChild(create('h2', { className: 'page-title desktop-analytics-title', textContent: 'Analítica' }));
+    const tabList = create('div', { className: 'desktop-analytics-tabs', role: 'tablist', 'aria-label': 'Secciones de analítica' });
+    const analyticsContent = create('div', { className: 'desktop-home-analytics-scroll' });
+    const tabDefinitions = [
+      { id: 'resumen', label: 'Resumen' },
+      { id: 'categorias', label: 'Categorías' },
+      { id: 'evolucion', label: 'Evolución' },
+      { id: 'metas', label: 'Metas' }
+    ];
+    const tabPanels = {};
+    const tabButtons = {};
+    tabDefinitions.forEach(tab => {
+      const button = create('button', {
+        className: 'desktop-analytics-tab',
+        type: 'button',
+        id: `home-analytics-tab-${tab.id}`,
+        role: 'tab',
+        textContent: tab.label,
+        'aria-controls': `home-analytics-panel-${tab.id}`,
+        'aria-selected': String(this.activeAnalyticsTab === tab.id),
+        tabindex: this.activeAnalyticsTab === tab.id ? '0' : '-1'
+      });
+      const panel = create('div', {
+        className: 'desktop-analytics-tab-panel',
+        id: `home-analytics-panel-${tab.id}`,
+        role: 'tabpanel',
+        'aria-labelledby': button.id,
+        tabindex: '0'
+      });
+      panel.hidden = this.activeAnalyticsTab !== tab.id;
+      on(button, 'click', () => this.activateAnalyticsTab(tab.id, tabButtons, tabPanels, summary));
+      on(button, 'keydown', event => this.handleAnalyticsTabKeydown(event, tabDefinitions, tabButtons));
+      tabButtons[tab.id] = button;
+      tabPanels[tab.id] = panel;
+      tabList.appendChild(button);
+      analyticsContent.appendChild(panel);
+    });
+
+    const summaryContent = create('div');
+    SummaryPage.renderContent(summaryContent, summary, options.goals || [], options.burnRate, {
+      hideMonthNav: true,
+      suppressStats: true,
+      desktopTabs: true
+    });
+    if (summary.porCategoria.length || summary.ingresos > 0 || summary.gastosNetos > 0 || summary.reembolsos > 0) {
+      const monthOverview = EstadisticasPage.renderMonthOverviewInto(summaryContent, summary);
+      monthOverview.dataset.analyticsGroup = 'resumen';
+    }
+    const hasSummaryContent = summaryContent.childNodes.length > 0;
+    Array.from(summaryContent.childNodes).forEach(node => {
+      const group = node.dataset?.analyticsGroup || 'resumen';
+      (tabPanels[group] || tabPanels.resumen).appendChild(node);
+    });
+
+    const trendsPeriod = create('div', { className: 'desktop-trends-period', role: 'group', 'aria-label': 'Período de evolución' });
+    const trendsContent = create('div', { className: 'desktop-trends-content' });
+    tabPanels.evolucion.appendChild(trendsPeriod);
+    tabPanels.evolucion.appendChild(trendsContent);
+    this.buildDesktopTrendsPeriod(trendsPeriod, trendsContent);
+
+    if (!options.goals?.length) {
+      tabPanels.metas.appendChild(create('p', { className: 'desktop-analytics-empty', textContent: 'No hay metas configuradas para este período.' }));
+    }
+    if (!hasSummaryContent) {
+      tabPanels.resumen.appendChild(create('p', { className: 'desktop-analytics-empty', textContent: 'No hay datos de resumen para este período.' }));
+    }
+
+    analyticsPanel.appendChild(tabList);
+    analyticsPanel.appendChild(analyticsContent);
+    workspace.appendChild(transactionsPanel);
+    workspace.appendChild(analyticsPanel);
+    content.appendChild(workspace);
+    this.chartResizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(() => Charts.redraw(tabPanels[this.activeAnalyticsTab]));
+    });
+    this.chartResizeObserver.observe(analyticsPanel);
+    requestAnimationFrame(() => Charts.redraw(tabPanels[this.activeAnalyticsTab]));
+  },
+
+  renderDesktopStats(container, descriptors, values, favorite, hidden, statCards, setFavorite) {
+    container.replaceChildren();
+    const metricIcons = {
+      ingresos: '<path d="M12 19V5M5 12l7-7 7 7"/>',
+      gastos: '<path d="M12 5v14m-7-7 7 7 7-7"/>',
+      ahorro: '<circle cx="12" cy="12" r="9"/><path d="M15 9.5c0-1.1-1.3-2-3-2s-3 .9-3 2 1.3 2 3 2 3 .9 3 2-1.3 2-3 2-3-.9-3-2M12 6v12"/>'
+    };
+    descriptors.forEach(({ id, label, color }) => {
+      const card = create('article', { className: `stat-card desktop-stat-card desktop-stat-${id}` });
+      const labelRow = create('div', { className: 'desktop-stat-label-row' });
+      const heading = create('span', { className: 'desktop-stat-heading' });
+      heading.appendChild(create('span', {
+        className: 'desktop-stat-icon',
+        dataset: { metricIcon: id },
+        'aria-hidden': 'true',
+        style: { color },
+        innerHTML: `<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${metricIcons[id]}</svg>`
+      }));
+      heading.appendChild(create('div', { className: 'stat-label', textContent: label }));
+      labelRow.appendChild(heading);
+      const favoriteButton = create('button', {
+        className: `desktop-favorite-toggle${favorite === id ? ' selected' : ''}`,
+        type: 'button',
+        textContent: favorite === id ? '★' : '☆',
+        title: favorite === id ? `Quitar ${label} de favoritos` : `Marcar ${label} como favorito`,
+        'aria-label': favorite === id ? `Quitar ${label} de favoritos` : `Marcar ${label} como favorito`,
+        'aria-pressed': String(favorite === id)
+      });
+      on(favoriteButton, 'click', () => setFavorite(id));
+      labelRow.appendChild(favoriteButton);
+      card.appendChild(labelRow);
+      const value = create('div', { className: `stat-value${hidden ? ' income-blurred' : ''}`, textContent: hidden ? '••••••' : values[id] });
+      value.style.color = color;
+      card.appendChild(value);
+      statCards[id] = card;
+      container.appendChild(card);
+    });
+
+    if (favorite) {
+      const descriptor = descriptors.find(item => item.id === favorite);
+      const favoriteCard = create('article', { className: 'stat-card desktop-stat-card desktop-favorite-card', 'aria-label': `Favorito: ${descriptor.label}` });
+      const favoriteHeading = create('div', { className: 'desktop-favorite-heading' });
+      favoriteHeading.appendChild(create('span', {
+        className: 'desktop-stat-icon',
+        dataset: { metricIcon: favorite },
+        'aria-hidden': 'true',
+        style: { color: descriptor.color },
+        innerHTML: `<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${metricIcons[favorite]}</svg>`
+      }));
+      favoriteHeading.appendChild(create('div', { className: 'stat-label', textContent: `Favorito · ${descriptor.label}` }));
+      favoriteCard.appendChild(favoriteHeading);
+      const value = create('div', { className: `stat-value${hidden ? ' income-blurred' : ''}`, textContent: hidden ? '••••••' : values[favorite] });
+      value.style.color = descriptor.color;
+      favoriteCard.appendChild(value);
+      container.appendChild(favoriteCard);
+    }
+  },
+
+  renderDesktopTransactions(container, transactions, categories) {
+    const catMap = Object.fromEntries(categories.map(category => [category.id, category]));
+    const filtered = this.applyFilters(transactions);
+    if (!filtered.length) {
+      container.appendChild(create('div', {
+        className: 'empty-state desktop-transactions-empty',
+        textContent: this.hasActiveFilters() ? 'No hay transacciones con estos filtros.' : 'No hay transacciones este mes.'
+      }));
+      return;
+    }
+
+    groupTransactionsByDate(filtered).forEach(group => {
+      container.appendChild(create('div', { className: 'day-header', textContent: formatFechaLarga(group.fecha) }));
+      group.items.forEach(tx => {
+        const category = catMap[tx.categoryId];
+        const colors = { expense: 'var(--expense-color)', income: 'var(--income-color)', refund: 'var(--refund-color)' };
+        const labels = { expense: 'Gasto', income: 'Ingreso', refund: 'Reembolso' };
+        const iconMarkup = tx.tipo === 'expense'
+          ? '<path d="M12 5v14M19 12l-7 7-7-7"/>'
+          : tx.tipo === 'income'
+            ? '<path d="M12 19V5M5 12l7-7 7 7"/>'
+            : '<path d="M9 14l-4-4 4-4M5 10h9a5 5 0 010 10h-2"/>';
+        const item = create('div', {
+          className: 'transaction-item desktop-transaction-item',
+          role: 'button',
+          tabindex: '0',
+          'aria-label': `${labels[tx.tipo]}: ${tx.titulo}, ${formatearEuro(tx.monto)}. Abrir acciones`
+        });
+        const icon = create('span', {
+          className: 'transaction-icon desktop-transaction-icon',
+          style: { background: `color-mix(in srgb, ${colors[tx.tipo]} 14%, transparent)`, color: colors[tx.tipo] },
+          innerHTML: `<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconMarkup}</svg>`
+        });
+        const info = create('span', { className: 'transaction-info' });
+        info.appendChild(create('span', { className: 'transaction-title', textContent: tx.titulo }));
+        const categoryName = tx.tipo === 'income'
+          ? `Ingreso${tx.clasificacion ? ` (${tx.clasificacion})` : ''}`
+          : tx.tipo === 'refund' ? 'Reembolso' : (category ? category.nombre : 'Sin categoría');
+        info.appendChild(create('span', { className: 'transaction-category', textContent: categoryName }));
+        const amount = create('span', {
+          className: `transaction-amount ${tx.tipo}`,
+          textContent: `${tx.tipo === 'expense' ? '−' : '+'}${formatearEuro(tx.monto)}`
+        });
+        item.appendChild(icon);
+        item.appendChild(info);
+        item.appendChild(amount);
+        const openOptions = () => this.showTransactionOptions(tx, catMap);
+        on(item, 'click', openOptions);
+        on(item, 'keydown', event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openOptions();
+          }
+        });
+        container.appendChild(item);
+      });
+    });
+  },
+
+  activateAnalyticsTab(tabId, buttons, panels, summary) {
+    this.activeAnalyticsTab = tabId;
+    Object.entries(buttons).forEach(([id, button]) => {
+      const selected = id === tabId;
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+      panels[id].hidden = !selected;
+    });
+    if (tabId === 'evolucion') this.loadDesktopTrends(panels.evolucion.querySelector('.desktop-trends-content'));
+    requestAnimationFrame(() => Charts.redraw(panels[tabId]));
+  },
+
+  handleAnalyticsTabKeydown(event, tabs, buttons) {
+    const current = tabs.findIndex(tab => buttons[tab.id] === event.currentTarget);
+    let next = current;
+    if (event.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    buttons[tabs[next].id].focus();
+    buttons[tabs[next].id].click();
+  },
+
+  buildDesktopTrendsPeriod(container, target) {
+    container.replaceChildren();
+    ['3m', '6m', '12m'].forEach(period => {
+      const labels = { '3m': '3 meses', '6m': '6 meses', '12m': '12 meses' };
+      const button = create('button', {
+        className: `period-btn${EstadisticasPage.period === period ? ' active' : ''}`,
+        type: 'button',
+        textContent: labels[period],
+        'aria-pressed': String(EstadisticasPage.period === period)
+      });
+      on(button, 'click', () => {
+        if (EstadisticasPage.period === period) return;
+        EstadisticasPage.period = period;
+        this.buildDesktopTrendsPeriod(container, target);
+        this.loadDesktopTrends(target);
+      });
+      container.appendChild(button);
+    });
+    if (this.activeAnalyticsTab === 'evolucion') this.loadDesktopTrends(target);
+  },
+
+  async loadDesktopTrends(target) {
+    const period = EstadisticasPage.period;
+    const count = period === '3m' ? 3 : period === '12m' ? 12 : 6;
+    const fromMonth = addMonths(this.currentMonth, -(count - 1));
+    const cacheKey = `${this.currentMonth}:${period}`;
+    if (this._desktopTrendsCache?.key === cacheKey) {
+      EstadisticasPage.renderTrendsInto(target, this._desktopTrendsCache.data);
+      requestAnimationFrame(() => Charts.redraw(target));
+      return;
+    }
+
+    target.replaceChildren(create('div', { className: 'loading', textContent: 'Cargando evolución…' }));
+    try {
+      const trends = await API.trends.get(fromMonth, this.currentMonth, null);
+      if (this.activeAnalyticsTab !== 'evolucion' || this.currentMonth !== cacheKey.split(':')[0] || EstadisticasPage.period !== period) return;
+      this._desktopTrendsCache = { key: cacheKey, data: trends };
+      EstadisticasPage.renderTrendsInto(target, trends);
+      requestAnimationFrame(() => Charts.redraw(target));
+    } catch (error) {
+      target.replaceChildren(create('div', { className: 'empty-state', textContent: `No se pudo cargar la evolución: ${error.message}` }));
+    }
   },
 
   createStat(label, value, color) {

@@ -41,3 +41,45 @@ Característica: Dashboard de inicio
     Cuando hago clic en el botón de ojo
     Entonces los valores de ingresos y ahorro no aparecen difuminados
     Y no hay errores críticos en la consola
+
+  Escenario: Favorito, controles y secciones analíticas en escritorio
+    Cuando abro la página de inicio
+    Y configuro el inicio en modo escritorio
+    Entonces aparecen tres tarjetas principales
+    Y las métricas tienen iconos decorativos y el botón dice Nueva transacción
+    Y los controles de inicio aparecen en el orden requerido
+    Cuando creo un ingreso "Favorito sueldo" de 2100 con clasificación "A"
+    Y marco "Ahorro" como favorito en inicio
+    Entonces el favorito de inicio es "Ahorro"
+    Cuando marco "Ingresos" como favorito en inicio
+    Entonces el favorito de inicio es "Ingresos"
+    Y el icono del favorito corresponde a "Ingresos"
+    Y el favorito refleja el importe actual de "Ingresos"
+    Cuando navego al mes anterior
+    Entonces el favorito refleja el importe actual de "Ingresos"
+    Cuando navego al mes siguiente
+    Entonces el favorito refleja el importe actual de "Ingresos"
+    Cuando marco "Ingresos" como favorito en inicio
+    Entonces no hay tarjeta de favorito en inicio
+    Cuando marco "Gastos" como favorito en inicio
+    Y hago clic en el botón de ojo
+    Entonces los valores de ingresos y ahorro aparecen difuminados
+    Y la privacidad indica importes ocultos
+    Cuando hago clic en el botón de ojo
+    Entonces la privacidad indica importes visibles
+    Cuando abro la pestaña de analítica "Categorías"
+    Entonces la pestaña de analítica "Categorías" queda seleccionada
+    Cuando abro la pestaña de analítica "Evolución"
+    Entonces la pestaña de analítica "Evolución" queda seleccionada
+    Cuando abro la pestaña de analítica "Metas"
+    Entonces la pestaña de analítica "Metas" queda seleccionada
+    Cuando activo nueva transacción desde los controles de inicio
+    Entonces el formulario de nueva transacción está abierto
+    Cuando redimensiono el inicio al ancho de escritorio 768
+    Entonces el diseño de inicio cabe en el viewport
+    Y no hay errores críticos en la consola
+
+  Escenario: Inicio móvil preservado en viewport estrecho
+    Cuando abro la página de inicio
+    Y mantengo el modo móvil en viewport 390
+    Entonces el inicio móvil conserva su estructura

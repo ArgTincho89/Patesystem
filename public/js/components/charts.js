@@ -1,5 +1,11 @@
 const Charts = {
+  redraw(container) {
+    if (!container) return;
+    container.querySelectorAll('canvas').forEach(canvas => canvas.__chartDraw?.());
+  },
+
   drawDonut(canvas, segments, size) {
+    canvas.__chartDraw = () => this.drawDonut(canvas, segments, size);
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     canvas.width = size * dpr;
@@ -42,10 +48,12 @@ const Charts = {
   },
 
   drawBarChart(canvas, data, options = {}) {
+    canvas.__chartDraw = () => this.drawBarChart(canvas, data, options);
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.parentElement.clientWidth - 48;
     const h = options.height || 180;
+    if (w <= 0) return;
 
     canvas.width = w * dpr;
     canvas.height = h * dpr;
@@ -108,10 +116,12 @@ const Charts = {
   },
 
   drawLineChart(canvas, datasets, labels, options = {}) {
+    canvas.__chartDraw = () => this.drawLineChart(canvas, datasets, labels, options);
     const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.parentElement.clientWidth - 48;
     const h = options.height || 200;
+    if (w <= 0) return;
 
     canvas.width = w * dpr;
     canvas.height = h * dpr;

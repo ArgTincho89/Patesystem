@@ -33,7 +33,7 @@ Then('el inicio muestra las áreas de transacciones y analítica', async functio
   await expect(this.page!.locator('.desktop-home-workspace')).toBeVisible();
   await expect(this.page!.getByRole('heading', { name: 'Inicio' })).toBeVisible();
   await expect(this.page!.getByRole('heading', { name: 'Analítica' })).toBeVisible();
-  await expect(this.page!.locator('.desktop-home-transactions .month-nav')).toBeVisible();
+  await expect(this.page!.locator('.desktop-home-controls .month-nav')).toBeVisible();
 });
 
 When('abro la página de registro', async function (this: PateSystemWorld) {

@@ -53,6 +53,11 @@ input, select, textarea, button {
   font-size: inherit;
 }
 
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -92,6 +97,18 @@ img {
 .mb-lg { margin-bottom: var(--space-lg); }
 
 .hidden { display: none !important; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
